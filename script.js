@@ -499,3 +499,9 @@ document.addEventListener('DOMContentLoaded', () => {
     muatSemuaData();
     switchTab('dashboard');
 });
+// Registrasi Service Worker
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./sw.js')
+    .then(reg => console.log('✅ Service Worker terdaftar', reg))
+    .catch(err => console.log('❌ Service Worker gagal', err));
+}
