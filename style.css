@@ -1,0 +1,7 @@
+.modal-active {
+    opacity: 1 !important;
+    transform: scale(1) !important;
+}
+.smooth-scroll {
+    scroll-behavior: smooth;
+}
