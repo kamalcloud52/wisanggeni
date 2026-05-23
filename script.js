@@ -1,4 +1,4 @@
-const API_URL = "https://script.google.com/macros/s/AKfycbzrdqmCriKy7bx9DMKpfseybncuSDqUxjsKgl7g1_Lanb-CN_X0hGyi90n8F7NCCKpXiA/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbzviuwcp3Ba0olZBOogjwQXZFkNdgNrERy6wBlTYtlJwz9hRo7hTRIGcN259QwG3wsd-g/exec";
 
 let localDataProduk = [];
 let localRiwayatHarian = [];
