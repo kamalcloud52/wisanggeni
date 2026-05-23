@@ -4,6 +4,7 @@ let localDataProduk = [];
 let localRiwayatHarian = [];
 let selectedProductData = null;
 
+// ==================== UTILITY ====================
 function tampilkanPopup(pesan, tipe = 'sukses') {
     const popup = document.getElementById('popup-kustom');
     const icon = document.getElementById('popup-icon');
@@ -26,6 +27,7 @@ function updateSapaan() {
     if (el) el.innerText = `${sapaan}, Faza 👋🏻`;
 }
 
+// ==================== NAVIGASI ====================
 function switchTab(tabName) {
     document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
     document.getElementById('tab-' + tabName).classList.remove('hidden');
@@ -50,6 +52,7 @@ function switchTab(tabName) {
     if (tabName === 'dashboard') updateSapaan();
 }
 
+// ==================== LOAD DATA ====================
 async function muatSemuaData() {
     try {
         const respon = await fetch(API_URL);
@@ -59,15 +62,16 @@ async function muatSemuaData() {
         renderDashboard(data.ringkasan, data.terlaris, localDataProduk, data.riwayat_harian);
     } catch (error) {
         console.error("Koneksi gagal:", error);
-        document.getElementById('tabel-produk-body').innerHTML = `<tr><td colspan="9" class="p-4 text-center text-red-500 font-medium">Gagal memuat data. Periksa jaringan internet atau URL API.</td></tr>`;
+        document.getElementById('tabel-produk-body').innerHTML = `<tr><td colspan="10" class="p-4 text-center text-red-500 font-medium">Gagal memuat data. Periksa jaringan internet atau URL API.</td></tr>`;
     }
 }
 
+// ==================== RENDER TABEL PRODUK (dengan aksi edit/hapus) ====================
 function renderTabelProduk(arrayData) {
     const tbody = document.getElementById('tabel-produk-body');
     tbody.innerHTML = '';
     if(arrayData.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="9" class="p-8 text-center text-gray-400 italic">Belum ada data barang.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="10" class="p-8 text-center text-gray-400 italic">Belum ada data barang.</td></tr>`;
         return;
     }
     arrayData.forEach((item, index) => {
@@ -88,12 +92,21 @@ function renderTabelProduk(arrayData) {
                         ${item.stok} pcs
                     </span>
                 </td>
+                <td class="p-2 md:p-4 text-center whitespace-nowrap">
+                    <button onclick="editProduk('${item.kode}')" class="text-blue-600 hover:text-blue-800 mr-3 transition" title="Edit">
+                        <i class="fa-regular fa-pen-to-square text-base"></i>
+                    </button>
+                    <button onclick="hapusProduk('${item.kode}', '${item.nama_produk.replace(/'/g, "\\'")}')" class="text-red-600 hover:text-red-800 transition" title="Hapus">
+                        <i class="fa-regular fa-trash-can text-base"></i>
+                    </button>
+                </td>
             </tr>
         `;
         tbody.insertAdjacentHTML('beforeend', row);
     });
 }
 
+// ==================== DASHBOARD ====================
 function renderDashboard(ringkasan, terlaris, produk, riwayatHarian) {
     localRiwayatHarian = riwayatHarian || [];
 
@@ -140,6 +153,7 @@ function renderDashboard(ringkasan, terlaris, produk, riwayatHarian) {
     } else { divMenipis.innerHTML = '<p class="text-green-600 font-medium text-xs"><i class="fa-solid fa-circle-check"></i> Aman! Semua stok di atas 5 pcs.</p>'; }
 }
 
+// ==================== FITUR PRODUK (Tambah, Edit, Hapus) ====================
 function cariProduk() {
     const keyword = document.getElementById('cari-produk').value.toLowerCase();
     const hasilFilter = localDataProduk.filter(p => 
@@ -149,6 +163,138 @@ function cariProduk() {
     renderTabelProduk(hasilFilter);
 }
 
+// === TAMBAH PRODUK (dengan validasi kode unik) ===
+async function simpanProduk(event) {
+    event.preventDefault();
+    const btn = document.getElementById('btn-submit-prod');
+    btn.innerText = "Mengunggah data..."; btn.disabled = true;
+
+    const kodeBaru = document.getElementById('prod-kode').value.trim();
+    // Validasi kode unik di frontend
+    const kodeSudahAda = localDataProduk.some(p => p.kode === kodeBaru);
+    if (kodeSudahAda) {
+        tampilkanPopup("Kode produk sudah digunakan. Gunakan kode lain.", "gagal");
+        btn.innerText = "Simpan ke Sheets"; btn.disabled = false;
+        return;
+    }
+
+    const payload = {
+        action: "addProduk",
+        nama_produk: document.getElementById('prod-nama').value,
+        kode: kodeBaru,
+        gambar: document.getElementById('prod-gambar').value,
+        size: document.getElementById('prod-size').value,
+        warna: document.getElementById('prod-warna').value,
+        modal: Number(document.getElementById('prod-modal').value) || 0,
+        harga_jual: Number(document.getElementById('prod-jual').value) || 0,
+        stok: Number(document.getElementById('prod-stok').value) || 0
+    };
+
+    try {
+        const response = await fetch(API_URL, { method: "POST", body: JSON.stringify(payload) });
+        const result = await response.text();
+        if (result.includes("ERROR") || result.includes("Error")) throw new Error(result);
+        tampilkanPopup("Registrasi barang baru sukses!", "sukses");
+        document.getElementById('form-produk').reset();
+        tutupModalProduk();
+        muatSemuaData();
+    } catch (error) {
+        tampilkanPopup("Gagal memasukkan data produk: " + error.message, "gagal");
+    }
+    btn.innerText = "Simpan ke Sheets"; btn.disabled = false;
+}
+
+// === EDIT PRODUK (membuka modal dengan data) ===
+function editProduk(kode) {
+    const produk = localDataProduk.find(p => p.kode === kode);
+    if (!produk) return;
+
+    document.getElementById('edit-prod-kode_lama').value = kode;
+    document.getElementById('edit-prod-nama').value = produk.nama_produk;
+    document.getElementById('edit-prod-kode').value = produk.kode;
+    document.getElementById('edit-prod-gambar').value = produk.gambar;
+    document.getElementById('edit-prod-size').value = produk.size;
+    document.getElementById('edit-prod-warna').value = produk.warna;
+    document.getElementById('edit-prod-modal').value = produk.modal;
+    document.getElementById('edit-prod-jual').value = produk.harga_jual;
+
+    const modal = document.getElementById('modal-edit-produk');
+    const box = document.getElementById('box-edit-produk-content');
+    modal.classList.remove('hidden');
+    setTimeout(() => box.classList.add('modal-active'), 10);
+}
+
+async function simpanEditProduk(event) {
+    event.preventDefault();
+    const btn = event.submitter;
+    const originalText = btn.innerText;
+    btn.innerText = "Menyimpan..."; btn.disabled = true;
+
+    const kodeLama = document.getElementById('edit-prod-kode_lama').value;
+    const payload = {
+        action: "editProduk",
+        kode_lama: kodeLama,
+        nama_produk: document.getElementById('edit-prod-nama').value,
+        kode: document.getElementById('edit-prod-kode').value, // sama seperti kode_lama karena tidak diubah
+        gambar: document.getElementById('edit-prod-gambar').value,
+        size: document.getElementById('edit-prod-size').value,
+        warna: document.getElementById('edit-prod-warna').value,
+        modal: Number(document.getElementById('edit-prod-modal').value) || 0,
+        harga_jual: Number(document.getElementById('edit-prod-jual').value) || 0
+    };
+
+    try {
+        const response = await fetch(API_URL, { method: "POST", body: JSON.stringify(payload) });
+        const result = await response.text();
+        if (result.includes("ERROR") || result.includes("Error")) throw new Error(result);
+        tampilkanPopup("Data produk berhasil diperbarui!", "sukses");
+        tutupModalEditProduk();
+        muatSemuaData();
+    } catch (error) {
+        tampilkanPopup("Gagal mengedit produk: " + error.message, "gagal");
+    }
+    btn.innerText = originalText; btn.disabled = false;
+}
+
+function tutupModalEditProduk() {
+    const modal = document.getElementById('modal-edit-produk');
+    const box = document.getElementById('box-edit-produk-content');
+    box.classList.remove('modal-active');
+    setTimeout(() => modal.classList.add('hidden'), 150);
+}
+
+// === HAPUS PRODUK ===
+function hapusProduk(kode, nama) {
+    if (confirm(`Yakin hapus produk "${nama}"? Semua transaksi yang terkait akan tetap ada, tapi produk tidak bisa dipilih lagi.`)) {
+        (async () => {
+            try {
+                const response = await fetch(API_URL, { method: "POST", body: JSON.stringify({ action: "hapusProduk", kode: kode }) });
+                const result = await response.text();
+                if (result.includes("ERROR") || result.includes("Error")) throw new Error(result);
+                tampilkanPopup(`Produk "${nama}" berhasil dihapus.`, "sukses");
+                muatSemuaData();
+            } catch (error) {
+                tampilkanPopup("Gagal menghapus produk: " + error.message, "gagal");
+            }
+        })();
+    }
+}
+
+// ==================== MODAL PRODUK (Tambah) ====================
+function bukaModalProduk() {
+    const modal = document.getElementById('modal-produk');
+    const box = document.getElementById('box-form-produk-content');
+    modal.classList.remove('hidden');
+    setTimeout(() => box.classList.add('modal-active'), 10);
+}
+function tutupModalProduk() {
+    const modal = document.getElementById('modal-produk');
+    const box = document.getElementById('box-form-produk-content');
+    box.classList.remove('modal-active');
+    setTimeout(() => modal.classList.add('hidden'), 150);
+}
+
+// ==================== RIWAYAT MODAL ====================
 function bukaModalRiwayat(tipe) {
     const modal = document.getElementById('modal-riwayat-harian');
     const box = document.getElementById('box-riwayat-content');
@@ -169,16 +315,14 @@ function bukaModalRiwayat(tipe) {
     const riwayatValid = localRiwayatHarian.filter(r => tipe === 'masuk' ? r.pemasukan > 0 : r.pengeluaran > 0);
     
     if (riwayatValid.length === 0) {
-        container.innerHTML = `
-            <div class="text-center py-12 flex flex-col items-center justify-center text-gray-400 bg-white rounded-xl border border-dashed">
-                <i class="fa-solid fa-calendar-xmark text-2xl mb-2 text-gray-300"></i>
-                <p class="text-xs italic">Belum ada rekam riwayat kas aktif di bulan ini.</p>
-            </div>`;
+        container.innerHTML = `<div class="text-center py-12 flex flex-col items-center justify-center text-gray-400 bg-white rounded-xl border border-dashed">
+            <i class="fa-solid fa-calendar-xmark text-2xl mb-2 text-gray-300"></i>
+            <p class="text-xs italic">Belum ada rekam riwayat kas aktif di bulan ini.</p>
+        </div>`;
     } else {
         riwayatValid.forEach(r => {
             const opsiDate = { day: 'numeric', month: 'long', year: 'numeric' };
             const tglCantik = new Date(r.tanggal).toLocaleDateString('id-ID', opsiDate);
-            
             const nilaiRupiah = tipe === 'masuk' ? r.pemasukan : r.pengeluaran;
             const badgeWarna = tipe === 'masuk' ? 'text-teal-700 bg-teal-50 border-teal-100' : 'text-red-700 bg-red-50 border-red-100';
             const iconPoin = tipe === 'masuk' ? 'fa-circle-arrow-down text-teal-500' : 'fa-circle-arrow-up text-red-500';
@@ -196,11 +340,9 @@ function bukaModalRiwayat(tipe) {
             `);
         });
     }
-
     modal.classList.remove('hidden');
     setTimeout(() => box.classList.add('modal-active'), 10);
 }
-
 function tutupModalRiwayat() {
     const modal = document.getElementById('modal-riwayat-harian');
     const box = document.getElementById('box-riwayat-content');
@@ -208,6 +350,25 @@ function tutupModalRiwayat() {
     setTimeout(() => modal.classList.add('hidden'), 150);
 }
 
+// ==================== TRANSAKSI (existing, dengan perbaikan harga jual otomatis) ====================
+function bukaSelectTipe() { /* ... sama seperti sebelumnya, tidak diubah */ }
+function tutupSelectTipe() { /* ... */ }
+function pilihTipe(val, label) { /* ... */ }
+function bukaSelectProduk() { /* ... */ }
+function tutupSelectProduk() { /* ... */ }
+function renderListSelectProduk(dataArray) { /* ... */ }
+function filterSelectProduk() { /* ... */ }
+function isiHargaJualBaruOtomatis() { /* ... sudah ada */ }
+function pilihProduk(kode) { /* ... sudah ada plus isiHargaJualBaruOtomatis */ }
+function resetFormTransaksiSelection() { /* ... */ }
+function ubahFormTransaksi() { /* ... */ }
+function isiHargaOtomatis() { /* ... */ }
+function hitungTotal() { /* ... */ }
+async function simpanTransaksi(event) { /* ... */ }
+
+// (Saya tidak tulis ulang fungsi transaksi karena tidak berubah, tetapi pastikan kode transaksi yang sudah diperbaiki sebelumnya tetap ada. Jika Anda menggunakan script.js versi terbaru dari chat sebelumnya, fungsi transaksi sudah lengkap. Di sini saya asumsikan Anda sudah punya. Untuk keamanan, saya sertakan fungsi transaksi yang sudah benar di bawah ini.)
+
+// ==================== FUNGSI TRANSAKSI (lengkap) ====================
 function bukaSelectTipe() {
     const modal = document.getElementById('modal-select-tipe');
     const box = document.getElementById('box-tipe-content');
@@ -227,7 +388,6 @@ function pilihTipe(val, label) {
     resetFormTransaksiSelection();
     ubahFormTransaksi();
 }
-
 function bukaSelectProduk() {
     const modal = document.getElementById('modal-select-produk');
     const box = document.getElementById('box-produk-content');
@@ -245,58 +405,42 @@ function tutupSelectProduk() {
     box.classList.remove('modal-active');
     setTimeout(() => modal.classList.add('hidden'), 150);
 }
-
 function renderListSelectProduk(dataArray) {
     const container = document.getElementById('list-select-produk-container');
     container.innerHTML = '';
     if(dataArray.length === 0) {
-        container.innerHTML = `
-            <div class="text-center py-12 flex flex-col items-center justify-center text-gray-400 bg-white rounded-xl border border-dashed">
-                <i class="fa-solid fa-box-open text-3xl mb-2 text-gray-300"></i>
-                <p class="text-sm italic">Produk tidak ada dalam sistem.</p>
-            </div>`;
+        container.innerHTML = `<div class="text-center py-12 flex flex-col items-center justify-center text-gray-400 bg-white rounded-xl border border-dashed">
+            <i class="fa-solid fa-box-open text-3xl mb-2 text-gray-300"></i><p class="text-sm italic">Produk tidak ada dalam sistem.</p></div>`;
         return;
     }
     dataArray.forEach(p => {
-        const itemBtn = `
+        container.insertAdjacentHTML('beforeend', `
             <button type="button" onclick="pilihProduk('${p.kode}')" class="w-full text-left p-3 bg-white hover:bg-teal-50/50 rounded-xl flex items-center justify-between border border-gray-200/70 hover:border-teal-200 transition group shadow-sm">
                 <div class="flex items-center gap-3">
                     <img src="${p.gambar}" class="w-11 h-11 object-cover rounded-lg bg-gray-100 shadow-sm flex-shrink-0" onerror="this.src='https://placehold.co/40x40?text=📦'">
-                    <div class="overflow-hidden">
-                        <p class="font-bold text-gray-900 text-sm group-hover:text-teal-600 transition truncate">${p.nama_produk}</p>
-                        <p class="text-xs text-gray-400 mt-0.5 font-medium">Kode: <span class="font-mono text-gray-600 bg-gray-100 px-1 rounded font-semibold">${p.kode}</span> | Size: ${p.size}</p>
-                    </div>
+                    <div><p class="font-bold text-gray-900 text-sm group-hover:text-teal-600 transition truncate">${p.nama_produk}</p>
+                    <p class="text-xs text-gray-400 mt-0.5 font-medium">Kode: <span class="font-mono text-gray-600 bg-gray-100 px-1 rounded font-semibold">${p.kode}</span> | Size: ${p.size}</p></div>
                 </div>
                 <div class="text-right flex-shrink-0 pl-2">
                     <span class="text-[11px] font-bold ${p.stok <= 5 ? 'text-red-700 bg-red-50 border-red-100' : 'text-slate-600 bg-slate-100 border-slate-200'} px-2 py-0.5 rounded-full border">Stok: ${p.stok}</span>
                     <p class="text-xs font-bold text-teal-600 mt-1.5">Rp ${Number(p.harga_jual).toLocaleString('id-ID')}</p>
                 </div>
             </button>
-        `;
-        container.insertAdjacentHTML('beforeend', itemBtn);
+        `);
     });
 }
-
 function filterSelectProduk() {
     const keyword = document.getElementById('cari-select-produk').value.toLowerCase();
-    const filtered = localDataProduk.filter(p => 
-        p.nama_produk.toLowerCase().includes(keyword) || 
-        p.kode.toLowerCase().includes(keyword)
-    );
+    const filtered = localDataProduk.filter(p => p.nama_produk.toLowerCase().includes(keyword) || p.kode.toLowerCase().includes(keyword));
     renderListSelectProduk(filtered);
 }
-
-// ================== PERBAIKAN UTAMA ==================
-// Fungsi untuk mengisi Harga Jual Baru secara otomatis dengan harga lama
 function isiHargaJualBaruOtomatis() {
     const tipe = document.getElementById('trx-tipe').value;
     const inputHargaJualBaru = document.getElementById('trx-harga-jual-baru');
     if (!inputHargaJualBaru) return;
-    
     if (tipe === 'Pembelian Stok' && selectedProductData) {
         const hargaJualLama = Number(selectedProductData.harga_jual);
         inputHargaJualBaru.value = hargaJualLama;
-        // Tambahkan indikator harga lama di bawah input (jika belum ada)
         let indikator = document.getElementById('harga-lama-indikator');
         if (!indikator) {
             const parent = inputHargaJualBaru.parentNode;
@@ -308,14 +452,11 @@ function isiHargaJualBaruOtomatis() {
         }
         indikator.innerHTML = `💰 Harga jual lama: Rp ${hargaJualLama.toLocaleString('id-ID')}`;
     } else {
-        // Jika bukan pembelian stok atau belum ada produk, kosongkan dan sembunyikan indikator
         inputHargaJualBaru.value = '';
         const indikator = document.getElementById('harga-lama-indikator');
         if (indikator) indikator.innerHTML = '';
     }
 }
-
-// Ubah fungsi pilihProduk yang sudah ada
 function pilihProduk(kode) {
     const produk = localDataProduk.find(p => p.kode === kode);
     if (produk) {
@@ -325,13 +466,10 @@ function pilihProduk(kode) {
         document.getElementById('text-select-produk').className = "text-gray-900 font-semibold";
         tutupSelectProduk();
         isiHargaOtomatis();
-        // ⭐ Panggil fungsi untuk mengisi harga jual baru otomatis
         isiHargaJualBaruOtomatis();
         hitungTotal();
     }
 }
-// ==================================================
-
 function resetFormTransaksiSelection() {
     selectedProductData = null;
     document.getElementById('trx-produk').value = "";
@@ -345,11 +483,9 @@ function resetFormTransaksiSelection() {
     document.getElementById('harga-satuan-text').classList.remove('hidden');
     document.getElementById('trx-harga-satuan').classList.add('hidden');
     document.getElementById('box-harga-jual-baru').classList.add('hidden');
-    // Hapus indikator harga lama
     const indikator = document.getElementById('harga-lama-indikator');
     if (indikator) indikator.innerHTML = '';
 }
-
 function ubahFormTransaksi() {
     const tipe = document.getElementById('trx-tipe').value;
     const boxProduk = document.getElementById('box-produk');
@@ -357,7 +493,6 @@ function ubahFormTransaksi() {
     const spanHarga = document.getElementById('harga-satuan-text');
     const inputHarga = document.getElementById('trx-harga-satuan');
     const boxHargaJual = document.getElementById('box-harga-jual-baru');
-    
     if (tipe === 'Pengeluaran Lain') {
         boxProduk.classList.add('hidden');
         jumlahInput.readOnly = false;
@@ -383,10 +518,9 @@ function ubahFormTransaksi() {
         jumlahInput.className = "w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-teal-500 focus:outline-none bg-gray-100 font-medium";
         spanHarga.classList.add('hidden');
         inputHarga.classList.remove('hidden');
-        boxHargaJual.classList.remove('hidden'); // Tampilkan input harga jual baru
+        boxHargaJual.classList.remove('hidden');
         if (selectedProductData) {
             inputHarga.value = Number(selectedProductData.modal);
-            // ⭐ Isi harga jual baru otomatis jika ada produk
             isiHargaJualBaruOtomatis();
         } else {
             inputHarga.value = '';
@@ -395,7 +529,6 @@ function ubahFormTransaksi() {
         hitungTotal();
     }
 }
-
 function isiHargaOtomatis() {
     const tipe = document.getElementById('trx-tipe').value;
     const spanHarga = document.getElementById('harga-satuan-text');
@@ -408,23 +541,18 @@ function isiHargaOtomatis() {
     }
     hitungTotal();
 }
-
 function hitungTotal() {
     const tipe = document.getElementById('trx-tipe').value;
     if (tipe === 'Pengeluaran Lain') return;
-    
     const qty = Number(document.getElementById('trx-qty').value) || 0;
     let hargaSatuan = 0;
-
     if (tipe === 'Penjualan' && selectedProductData) {
         hargaSatuan = Number(selectedProductData.harga_jual);
     } else if (tipe === 'Pembelian Stok') {
         hargaSatuan = Number(document.getElementById('trx-harga-satuan').value) || 0;
     }
-    
     const total = qty * hargaSatuan;
     document.getElementById('trx-jumlah').value = total > 0 ? total : "";
-    
     const nama = selectedProductData ? selectedProductData.nama_produk : '';
     if (selectedProductData) {
         if (tipe === 'Penjualan') {
@@ -434,18 +562,15 @@ function hitungTotal() {
         }
     }
 }
-
 async function simpanTransaksi(event) {
     event.preventDefault();
     const btn = document.getElementById('btn-submit-trx');
     btn.innerText = "Menyimpan ke Sheets..."; btn.disabled = true;
-
     const tipe = document.getElementById('trx-tipe').value;
     const kodeProduk = document.getElementById('trx-produk').value;
     const qty = tipe !== 'Pengeluaran Lain' ? Number(document.getElementById('trx-qty').value) : 0;
     const jumlah = Number(document.getElementById('trx-jumlah').value);
     const keterangan = document.getElementById('trx-keterangan').value;
-    
     let hargaSatuan = null;
     let hargaJualBaru = null;
     if (tipe === 'Pembelian Stok') {
@@ -455,30 +580,16 @@ async function simpanTransaksi(event) {
             hargaJualBaru = Number(jualBaru);
         }
     }
-
     if (tipe !== 'Pengeluaran Lain' && !kodeProduk) {
-        tampilkanPopup("Pilih produk terlebih dahulu dari daftar pencarian.", "gagal");
+        tampilkanPopup("Pilih produk terlebih dahulu.", "gagal");
         btn.innerText = "Simpan Catatan Keuangan"; btn.disabled = false;
         return;
     }
-
-    const payload = {
-        action: "addTransaksi",
-        tipe: tipe,
-        kode_produk: kodeProduk,
-        qty: qty,
-        jumlah: jumlah,
-        keterangan: keterangan,
-        harga_satuan: hargaSatuan,
-        harga_jual_baru: hargaJualBaru
-    };
-
+    const payload = { action: "addTransaksi", tipe, kode_produk: kodeProduk, qty, jumlah, keterangan, harga_satuan: hargaSatuan, harga_jual_baru: hargaJualBaru };
     try {
         const response = await fetch(API_URL, { method: "POST", body: JSON.stringify(payload) });
         const result = await response.text();
-        if (result.includes("ERROR") || result.includes("Error")) {
-            throw new Error(result);
-        }
+        if (result.includes("ERROR") || result.includes("Error")) throw new Error(result);
         tampilkanPopup("Transaksi baru berhasil diverifikasi & dicatat!", "sukses");
         document.getElementById('form-transaksi').reset();
         resetFormTransaksiSelection();
@@ -490,58 +601,12 @@ async function simpanTransaksi(event) {
     btn.innerText = "Simpan Catatan Keuangan"; btn.disabled = false;
 }
 
-async function simpanProduk(event) {
-    event.preventDefault();
-    const btn = document.getElementById('btn-submit-prod');
-    btn.innerText = "Mengunggah data..."; btn.disabled = true;
-
-    // Konversi ke number agar tidak mengirim string
-    const payload = {
-        action: "addProduk",
-        nama_produk: document.getElementById('prod-nama').value,
-        kode: document.getElementById('prod-kode').value,
-        gambar: document.getElementById('prod-gambar').value,
-        size: document.getElementById('prod-size').value,
-        warna: document.getElementById('prod-warna').value,
-        modal: Number(document.getElementById('prod-modal').value) || 0,
-        harga_jual: Number(document.getElementById('prod-jual').value) || 0,
-        stok: Number(document.getElementById('prod-stok').value) || 0
-    };
-
-    try {
-        const response = await fetch(API_URL, { method: "POST", body: JSON.stringify(payload) });
-        const result = await response.text();
-        if (result.includes("ERROR") || result.includes("Error")) throw new Error(result);
-        tampilkanPopup("Registrasi barang baru sukses!", "sukses");
-        document.getElementById('form-produk').reset();
-        tutupModalProduk();
-        muatSemuaData();
-    } catch (error) {
-        tampilkanPopup("Gagal memasukkan data produk.", "gagal");
-    }
-    btn.innerText = "Simpan ke Sheets"; btn.disabled = false;
-}
-
-function bukaModalProduk() {
-    const modal = document.getElementById('modal-produk');
-    const box = document.getElementById('box-form-produk-content');
-    modal.classList.remove('hidden');
-    setTimeout(() => box.classList.add('modal-active'), 10);
-}
-function tutupModalProduk() {
-    const modal = document.getElementById('modal-produk');
-    const box = document.getElementById('box-form-produk-content');
-    box.classList.remove('modal-active');
-    setTimeout(() => modal.classList.add('hidden'), 150);
-}
-
+// ==================== INIT ====================
 document.addEventListener('DOMContentLoaded', () => {
     updateSapaan();
     muatSemuaData();
     switchTab('dashboard');
 });
-
-// Registrasi Service Worker (PWA)
 if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./sw.js')
         .then(reg => console.log('✅ Service Worker terdaftar', reg))
