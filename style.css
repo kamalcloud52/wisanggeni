@@ -16,19 +16,11 @@ tbody tr span {
     transition: all 0.2s ease;
 }
 
-/* Pastikan modal select produk muncul di atas semua elemen */
-#modal-select-produk {
-    z-index: 9999 !important;
-}
-#modal-select-tipe {
-    z-index: 9999 !important;
-}
-#modal-riwayat-harian {
-    z-index: 9999 !important;
-}
-#modal-produk {
-    z-index: 9999 !important;
-}
+/* Pastikan modal muncul di atas elemen lain */
+#modal-select-produk,
+#modal-select-tipe,
+#modal-riwayat-harian,
+#modal-produk,
 #popup-kustom {
-    z-index: 10000 !important;
+    z-index: 9999 !important;
 }
