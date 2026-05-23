@@ -286,6 +286,36 @@ function filterSelectProduk() {
     renderListSelectProduk(filtered);
 }
 
+// ================== PERBAIKAN UTAMA ==================
+// Fungsi untuk mengisi Harga Jual Baru secara otomatis dengan harga lama
+function isiHargaJualBaruOtomatis() {
+    const tipe = document.getElementById('trx-tipe').value;
+    const inputHargaJualBaru = document.getElementById('trx-harga-jual-baru');
+    if (!inputHargaJualBaru) return;
+    
+    if (tipe === 'Pembelian Stok' && selectedProductData) {
+        const hargaJualLama = Number(selectedProductData.harga_jual);
+        inputHargaJualBaru.value = hargaJualLama;
+        // Tambahkan indikator harga lama di bawah input (jika belum ada)
+        let indikator = document.getElementById('harga-lama-indikator');
+        if (!indikator) {
+            const parent = inputHargaJualBaru.parentNode;
+            const span = document.createElement('span');
+            span.id = 'harga-lama-indikator';
+            span.className = 'text-xs text-gray-400 block mt-1';
+            parent.appendChild(span);
+            indikator = span;
+        }
+        indikator.innerHTML = `💰 Harga jual lama: Rp ${hargaJualLama.toLocaleString('id-ID')}`;
+    } else {
+        // Jika bukan pembelian stok atau belum ada produk, kosongkan dan sembunyikan indikator
+        inputHargaJualBaru.value = '';
+        const indikator = document.getElementById('harga-lama-indikator');
+        if (indikator) indikator.innerHTML = '';
+    }
+}
+
+// Ubah fungsi pilihProduk yang sudah ada
 function pilihProduk(kode) {
     const produk = localDataProduk.find(p => p.kode === kode);
     if (produk) {
@@ -295,8 +325,12 @@ function pilihProduk(kode) {
         document.getElementById('text-select-produk').className = "text-gray-900 font-semibold";
         tutupSelectProduk();
         isiHargaOtomatis();
+        // ⭐ Panggil fungsi untuk mengisi harga jual baru otomatis
+        isiHargaJualBaruOtomatis();
+        hitungTotal();
     }
 }
+// ==================================================
 
 function resetFormTransaksiSelection() {
     selectedProductData = null;
@@ -311,6 +345,9 @@ function resetFormTransaksiSelection() {
     document.getElementById('harga-satuan-text').classList.remove('hidden');
     document.getElementById('trx-harga-satuan').classList.add('hidden');
     document.getElementById('box-harga-jual-baru').classList.add('hidden');
+    // Hapus indikator harga lama
+    const indikator = document.getElementById('harga-lama-indikator');
+    if (indikator) indikator.innerHTML = '';
 }
 
 function ubahFormTransaksi() {
@@ -346,10 +383,11 @@ function ubahFormTransaksi() {
         jumlahInput.className = "w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-teal-500 focus:outline-none bg-gray-100 font-medium";
         spanHarga.classList.add('hidden');
         inputHarga.classList.remove('hidden');
-        boxHargaJual.classList.remove('hidden'); // ⭐ Tampilkan input harga jual baru
+        boxHargaJual.classList.remove('hidden'); // Tampilkan input harga jual baru
         if (selectedProductData) {
             inputHarga.value = Number(selectedProductData.modal);
-            document.getElementById('trx-harga-jual-baru').value = Number(selectedProductData.harga_jual); // isi default harga jual saat ini
+            // ⭐ Isi harga jual baru otomatis jika ada produk
+            isiHargaJualBaruOtomatis();
         } else {
             inputHarga.value = '';
             document.getElementById('trx-harga-jual-baru').value = '';
@@ -432,13 +470,13 @@ async function simpanTransaksi(event) {
         jumlah: jumlah,
         keterangan: keterangan,
         harga_satuan: hargaSatuan,
-        harga_jual_baru: hargaJualBaru   // ⭐ Kirim harga jual baru jika diisi
+        harga_jual_baru: hargaJualBaru
     };
 
     try {
         const response = await fetch(API_URL, { method: "POST", body: JSON.stringify(payload) });
         const result = await response.text();
-        if (result.includes("ERROR")) {
+        if (result.includes("ERROR") || result.includes("Error")) {
             throw new Error(result);
         }
         tampilkanPopup("Transaksi baru berhasil diverifikasi & dicatat!", "sukses");
@@ -457,6 +495,7 @@ async function simpanProduk(event) {
     const btn = document.getElementById('btn-submit-prod');
     btn.innerText = "Mengunggah data..."; btn.disabled = true;
 
+    // Konversi ke number agar tidak mengirim string
     const payload = {
         action: "addProduk",
         nama_produk: document.getElementById('prod-nama').value,
@@ -464,13 +503,15 @@ async function simpanProduk(event) {
         gambar: document.getElementById('prod-gambar').value,
         size: document.getElementById('prod-size').value,
         warna: document.getElementById('prod-warna').value,
-        modal: document.getElementById('prod-modal').value,
-        harga_jual: document.getElementById('prod-jual').value,
-        stok: document.getElementById('prod-stok').value
+        modal: Number(document.getElementById('prod-modal').value) || 0,
+        harga_jual: Number(document.getElementById('prod-jual').value) || 0,
+        stok: Number(document.getElementById('prod-stok').value) || 0
     };
 
     try {
-        await fetch(API_URL, { method: "POST", body: JSON.stringify(payload) });
+        const response = await fetch(API_URL, { method: "POST", body: JSON.stringify(payload) });
+        const result = await response.text();
+        if (result.includes("ERROR") || result.includes("Error")) throw new Error(result);
         tampilkanPopup("Registrasi barang baru sukses!", "sukses");
         document.getElementById('form-produk').reset();
         tutupModalProduk();
@@ -499,9 +540,10 @@ document.addEventListener('DOMContentLoaded', () => {
     muatSemuaData();
     switchTab('dashboard');
 });
-// Registrasi Service Worker
+
+// Registrasi Service Worker (PWA)
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('./sw.js')
-    .then(reg => console.log('✅ Service Worker terdaftar', reg))
-    .catch(err => console.log('❌ Service Worker gagal', err));
+    navigator.serviceWorker.register('./sw.js')
+        .then(reg => console.log('✅ Service Worker terdaftar', reg))
+        .catch(err => console.log('❌ Service Worker gagal', err));
 }
