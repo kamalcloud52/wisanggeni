@@ -50,65 +50,59 @@ function switchTab(tabName) {
     if (tabName === 'dashboard') updateSapaan();
 }
 
-// Fungsi render produk dengan card view + nomor urut (seperti di modal transaksi)
-function renderCardProduk(produkArray) {
-    const container = document.getElementById('daftar-produk-container');
-    const totalSpan = document.getElementById('total-produk-count');
-    if (!container) return;
-
-    container.innerHTML = '';
-    if (!produkArray.length) {
-        container.innerHTML = `<div class="text-center py-12 text-gray-400 italic">Belum ada data produk.</div>`;
-        if (totalSpan) totalSpan.innerText = '0 produk';
-        return;
-    }
-
-    if (totalSpan) totalSpan.innerText = `${produkArray.length} produk`;
-
-    produkArray.forEach((item, idx) => {
-        const stokClass = item.stok <= 5 ? 'bg-red-50 text-red-700 border-red-200' : 'bg-green-50 text-green-700 border-green-200';
-        const card = `
-            <div class="flex items-center justify-between p-4 hover:bg-teal-50/30 transition border-b border-gray-100">
-                <div class="flex items-center gap-4 flex-1">
-                    <div class="w-8 text-center text-gray-400 font-bold text-sm">${idx + 1}</div>
-                    <img src="${item.gambar}" class="w-12 h-12 object-cover rounded-lg bg-gray-100 shadow-sm" onerror="this.src='https://placehold.co/48x48?text=📦'">
-                    <div class="flex-1">
-                        <p class="font-bold text-gray-800 text-sm md:text-base">${item.nama_produk}</p>
-                        <div class="flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500 mt-0.5">
-                            <span><span class="font-mono bg-gray-100 px-1 rounded">${item.kode}</span></span>
-                            <span>📏 Size: ${item.size}</span>
-                            <span>🎨 Warna: ${item.warna}</span>
-                            <span class="hidden md:inline">💰 Modal: Rp ${Number(item.modal).toLocaleString('id-ID')}</span>
-                        </div>
-                    </div>
-                </div>
-                <div class="text-right flex-shrink-0 pl-3">
-                    <span class="text-sm font-bold text-teal-600">Rp ${Number(item.harga_jual).toLocaleString('id-ID')}</span>
-                    <div class="mt-1">
-                        <span class="inline-block px-2 py-0.5 rounded-full text-xs font-bold ${stokClass} border">Stok: ${item.stok}</span>
-                    </div>
-                </div>
-            </div>
-        `;
-        container.insertAdjacentHTML('beforeend', card);
-    });
-}
-
-// Fungsi muat data dari API (hanya mengganti renderTabelProduk dengan renderCardProduk)
 async function muatSemuaData() {
     try {
         const respon = await fetch(API_URL);
         const data = await respon.json();
         localDataProduk = data.produk || [];
-        renderCardProduk(localDataProduk);
+        renderProdukList(localDataProduk);
         renderDashboard(data.ringkasan, data.terlaris, localDataProduk, data.riwayat_harian);
     } catch (error) {
         console.error("Koneksi gagal:", error);
-        const container = document.getElementById('daftar-produk-container');
-        if (container) container.innerHTML = `<div class="p-4 text-center text-red-500 font-medium">Gagal memuat data. Periksa jaringan internet atau URL API.</div>`;
-        const totalSpan = document.getElementById('total-produk-count');
-        if (totalSpan) totalSpan.innerText = '0 produk';
+        document.getElementById('list-produk-container').innerHTML = `<div class="text-center p-4 text-red-500 font-medium">Gagal memuat data. Periksa jaringan internet atau URL API.</div>`;
     }
+}
+
+// === BARU: render daftar produk dalam bentuk kartu dengan nomor urut ===
+function renderProdukList(arrayData) {
+    const container = document.getElementById('list-produk-container');
+    if (!container) return;
+    container.innerHTML = '';
+    if(arrayData.length === 0) {
+        container.innerHTML = `<div class="text-center py-10 text-gray-400 italic">Belum ada data barang.</div>`;
+        return;
+    }
+    arrayData.forEach((item, index) => {
+        const stokBadge = item.stok <= 5 
+            ? 'bg-red-50 text-red-700 border-red-200' 
+            : 'bg-green-50 text-green-700 border-green-200';
+        const card = `
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-3 md:p-4 flex flex-col md:flex-row md:items-center justify-between gap-3 hover:shadow-md transition-all">
+                <div class="flex items-start gap-3 md:gap-4 flex-1">
+                    <div class="flex-shrink-0 w-8 text-center font-bold text-gray-400 text-sm md:text-base">${index + 1}.</div>
+                    <img src="${item.gambar}" class="w-12 h-12 md:w-14 md:h-14 object-cover rounded-lg bg-gray-100 shadow-sm flex-shrink-0" onerror="this.src='https://placehold.co/60x60?text=📦'">
+                    <div class="flex-1 min-w-0">
+                        <div class="flex flex-wrap items-baseline gap-2 mb-1">
+                            <h4 class="font-bold text-gray-900 text-sm md:text-base">${item.nama_produk}</h4>
+                            <span class="bg-slate-100 text-slate-700 text-[10px] md:text-xs px-2 py-0.5 rounded font-mono border font-semibold">${item.kode}</span>
+                        </div>
+                        <div class="flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500">
+                            <span><i class="fa-solid fa-ruler-combined mr-1"></i> Size: ${item.size}</span>
+                            <span><i class="fa-solid fa-palette mr-1"></i> Warna: ${item.warna}</span>
+                            <span><i class="fa-solid fa-coins mr-1"></i> Modal: Rp ${Number(item.modal).toLocaleString('id-ID')}</span>
+                            <span><i class="fa-solid fa-tag mr-1"></i> Jual: Rp ${Number(item.harga_jual).toLocaleString('id-ID')}</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="flex justify-end md:justify-center items-center gap-3 ml-8 md:ml-0">
+                    <span class="px-2.5 py-1 rounded-full text-xs font-bold ${stokBadge} border whitespace-nowrap">
+                        <i class="fa-solid fa-boxes-stacked mr-1"></i> ${item.stok} pcs
+                    </span>
+                </div>
+            </div>
+        `;
+        container.insertAdjacentHTML('beforeend', card);
+    });
 }
 
 function renderDashboard(ringkasan, terlaris, produk, riwayatHarian) {
@@ -163,10 +157,8 @@ function cariProduk() {
         p.nama_produk.toLowerCase().includes(keyword) || 
         p.kode.toLowerCase().includes(keyword)
     );
-    renderCardProduk(hasilFilter);
+    renderProdukList(hasilFilter);
 }
-
-// --- Semua fungsi di bawah ini TIDAK DIUBAH (sama persis dengan kode asli Anda) ---
 
 function bukaModalRiwayat(tipe) {
     const modal = document.getElementById('modal-riwayat-harian');
@@ -365,10 +357,10 @@ function ubahFormTransaksi() {
         jumlahInput.className = "w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-teal-500 focus:outline-none bg-gray-100 font-medium";
         spanHarga.classList.add('hidden');
         inputHarga.classList.remove('hidden');
-        boxHargaJual.classList.remove('hidden');
+        boxHargaJual.classList.remove('hidden'); // ⭐ Tampilkan input harga jual baru
         if (selectedProductData) {
             inputHarga.value = Number(selectedProductData.modal);
-            document.getElementById('trx-harga-jual-baru').value = Number(selectedProductData.harga_jual);
+            document.getElementById('trx-harga-jual-baru').value = Number(selectedProductData.harga_jual); // isi default harga jual saat ini
         } else {
             inputHarga.value = '';
             document.getElementById('trx-harga-jual-baru').value = '';
@@ -518,6 +510,7 @@ document.addEventListener('DOMContentLoaded', () => {
     muatSemuaData();
     switchTab('dashboard');
 });
+// Registrasi Service Worker
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('./sw.js')
     .then(reg => console.log('✅ Service Worker terdaftar', reg))
