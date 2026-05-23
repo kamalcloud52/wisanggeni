@@ -26,7 +26,7 @@ function updateSapaan() {
     const el = document.getElementById('sapaan-text');
     if (el) el.innerText = `${sapaan}, Faza 👋🏻`;
 }
-
+<i class="fa-solid fa-pen-to-square text-base"></i>
 // ==================== NAVIGASI ====================
 function switchTab(tabName) {
     document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
@@ -94,10 +94,10 @@ function renderTabelProduk(arrayData) {
                 </td>
                 <td class="p-2 md:p-4 text-center whitespace-nowrap">
                     <button onclick="editProduk('${item.kode}')" class="text-blue-600 hover:text-blue-800 mr-3 transition" title="Edit">
-                        <i class="fa-regular fa-pen-to-square text-base"></i>
+                        
                     </button>
                     <button onclick="hapusProduk('${item.kode}', '${item.nama_produk.replace(/'/g, "\\'")}')" class="text-red-600 hover:text-red-800 transition" title="Hapus">
-                        <i class="fa-regular fa-trash-can text-base"></i>
+                        <i class="fa-solid fa-trash-can text-base"></i>
                     </button>
                 </td>
             </tr>
