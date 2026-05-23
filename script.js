@@ -55,49 +55,46 @@ async function muatSemuaData() {
         const respon = await fetch(API_URL);
         const data = await respon.json();
         localDataProduk = data.produk || [];
-        renderProdukList(localDataProduk);
+        renderTabelProduk(localDataProduk);
         renderDashboard(data.ringkasan, data.terlaris, localDataProduk, data.riwayat_harian);
     } catch (error) {
         console.error("Koneksi gagal:", error);
-        document.getElementById('list-produk-container').innerHTML = `<div class="text-center p-4 text-red-500 font-medium">Gagal memuat data. Periksa jaringan internet atau URL API.</div>`;
+        document.getElementById('daftar-produk-container').innerHTML = `<div class="col-span-full text-center text-red-500 font-medium p-8">Gagal memuat data. Periksa jaringan internet atau URL API.</div>`;
     }
 }
 
-// === BARU: render daftar produk dalam bentuk kartu dengan nomor urut ===
-function renderProdukList(arrayData) {
-    const container = document.getElementById('list-produk-container');
-    if (!container) return;
+// Fungsi render untuk tab produk (menggunakan tampilan card seperti di modal select)
+function renderTabelProduk(arrayData) {
+    const container = document.getElementById('daftar-produk-container');
     container.innerHTML = '';
     if(arrayData.length === 0) {
-        container.innerHTML = `<div class="text-center py-10 text-gray-400 italic">Belum ada data barang.</div>`;
+        container.innerHTML = `<div class="col-span-full text-center text-gray-400 italic p-8">Belum ada data barang.</div>`;
         return;
     }
     arrayData.forEach((item, index) => {
-        const stokBadge = item.stok <= 5 
-            ? 'bg-red-50 text-red-700 border-red-200' 
-            : 'bg-green-50 text-green-700 border-green-200';
+        const stokBadge = item.stok <= 5 ? 
+            '<span class="text-[11px] font-bold text-red-700 bg-red-50 border-red-100 px-2 py-0.5 rounded-full border">Stok: ' + item.stok + '</span>' : 
+            '<span class="text-[11px] font-bold text-slate-600 bg-slate-100 border-slate-200 px-2 py-0.5 rounded-full border">Stok: ' + item.stok + '</span>';
+        
         const card = `
-            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-3 md:p-4 flex flex-col md:flex-row md:items-center justify-between gap-3 hover:shadow-md transition-all">
-                <div class="flex items-start gap-3 md:gap-4 flex-1">
-                    <div class="flex-shrink-0 w-8 text-center font-bold text-gray-400 text-sm md:text-base">${index + 1}.</div>
-                    <img src="${item.gambar}" class="w-12 h-12 md:w-14 md:h-14 object-cover rounded-lg bg-gray-100 shadow-sm flex-shrink-0" onerror="this.src='https://placehold.co/60x60?text=📦'">
+            <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden hover:shadow-md transition-all duration-200 flex flex-col">
+                <div class="flex items-start p-3 gap-3">
+                    <div class="flex-shrink-0 relative">
+                        <div class="absolute -top-2 -left-2 w-6 h-6 bg-teal-600 text-white rounded-full flex items-center justify-center text-xs font-bold shadow-md">${index+1}</div>
+                        <img src="${item.gambar}" class="w-16 h-16 object-cover rounded-lg bg-gray-100 shadow-sm" onerror="this.src='https://placehold.co/64x64?text=📦'">
+                    </div>
                     <div class="flex-1 min-w-0">
-                        <div class="flex flex-wrap items-baseline gap-2 mb-1">
-                            <h4 class="font-bold text-gray-900 text-sm md:text-base">${item.nama_produk}</h4>
-                            <span class="bg-slate-100 text-slate-700 text-[10px] md:text-xs px-2 py-0.5 rounded font-mono border font-semibold">${item.kode}</span>
+                        <div class="flex justify-between items-start gap-2 flex-wrap">
+                            <p class="font-bold text-gray-900 text-sm truncate">${item.nama_produk}</p>
+                            ${stokBadge}
                         </div>
-                        <div class="flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500">
-                            <span><i class="fa-solid fa-ruler-combined mr-1"></i> Size: ${item.size}</span>
-                            <span><i class="fa-solid fa-palette mr-1"></i> Warna: ${item.warna}</span>
-                            <span><i class="fa-solid fa-coins mr-1"></i> Modal: Rp ${Number(item.modal).toLocaleString('id-ID')}</span>
-                            <span><i class="fa-solid fa-tag mr-1"></i> Jual: Rp ${Number(item.harga_jual).toLocaleString('id-ID')}</span>
+                        <p class="text-xs text-gray-500 mt-1 font-mono">Kode: <span class="bg-gray-100 px-1.5 py-0.5 rounded font-semibold">${item.kode}</span> | Size: ${item.size}</p>
+                        <p class="text-xs text-gray-500">Warna: ${item.warna}</p>
+                        <div class="flex justify-between items-center mt-2">
+                            <span class="text-teal-600 font-bold text-sm">Rp ${Number(item.harga_jual).toLocaleString('id-ID')}</span>
+                            <span class="text-gray-400 text-[10px]">Modal: Rp ${Number(item.modal).toLocaleString('id-ID')}</span>
                         </div>
                     </div>
-                </div>
-                <div class="flex justify-end md:justify-center items-center gap-3 ml-8 md:ml-0">
-                    <span class="px-2.5 py-1 rounded-full text-xs font-bold ${stokBadge} border whitespace-nowrap">
-                        <i class="fa-solid fa-boxes-stacked mr-1"></i> ${item.stok} pcs
-                    </span>
                 </div>
             </div>
         `;
@@ -157,7 +154,7 @@ function cariProduk() {
         p.nama_produk.toLowerCase().includes(keyword) || 
         p.kode.toLowerCase().includes(keyword)
     );
-    renderProdukList(hasilFilter);
+    renderTabelProduk(hasilFilter);
 }
 
 function bukaModalRiwayat(tipe) {
@@ -357,10 +354,10 @@ function ubahFormTransaksi() {
         jumlahInput.className = "w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-teal-500 focus:outline-none bg-gray-100 font-medium";
         spanHarga.classList.add('hidden');
         inputHarga.classList.remove('hidden');
-        boxHargaJual.classList.remove('hidden'); // ⭐ Tampilkan input harga jual baru
+        boxHargaJual.classList.remove('hidden');
         if (selectedProductData) {
             inputHarga.value = Number(selectedProductData.modal);
-            document.getElementById('trx-harga-jual-baru').value = Number(selectedProductData.harga_jual); // isi default harga jual saat ini
+            document.getElementById('trx-harga-jual-baru').value = Number(selectedProductData.harga_jual);
         } else {
             inputHarga.value = '';
             document.getElementById('trx-harga-jual-baru').value = '';
@@ -510,7 +507,6 @@ document.addEventListener('DOMContentLoaded', () => {
     muatSemuaData();
     switchTab('dashboard');
 });
-// Registrasi Service Worker
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('./sw.js')
     .then(reg => console.log('✅ Service Worker terdaftar', reg))
