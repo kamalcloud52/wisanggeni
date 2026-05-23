@@ -1,10 +1,10 @@
 {
   "name": "Wisanggeni ID",
-  "short_name": "Kelola",
+  "short_name": "AdminStok",
   "start_url": "./index.html",
   "display": "standalone",
-  "background_color": "#FFFFFF",
-  "theme_color": "#FFFFFF",
+  "background_color": "#12192B",
+  "theme_color": "#12192B",
   "orientation": "portrait",
   "icons": [
     {
