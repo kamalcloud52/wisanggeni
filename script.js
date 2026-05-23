@@ -26,7 +26,7 @@ function updateSapaan() {
     const el = document.getElementById('sapaan-text');
     if (el) el.innerText = `${sapaan}, Faza 👋🏻`;
 }
-<i class="fa-solid fa-pen-to-square text-base"></i>
+
 // ==================== NAVIGASI ====================
 function switchTab(tabName) {
     document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
@@ -62,7 +62,7 @@ async function muatSemuaData() {
         renderDashboard(data.ringkasan, data.terlaris, localDataProduk, data.riwayat_harian);
     } catch (error) {
         console.error("Koneksi gagal:", error);
-        document.getElementById('tabel-produk-body').innerHTML = `<tr><td colspan="10" class="p-4 text-center text-red-500 font-medium">Gagal memuat data. Periksa jaringan internet atau URL API.</td></tr>`;
+        document.getElementById('tabel-produk-body').innerHTML = `<td><td colspan="10" class="p-4 text-center text-red-500 font-medium">Gagal memuat data. Periksa jaringan internet atau URL API.</td></tr>`;
     }
 }
 
@@ -70,11 +70,14 @@ async function muatSemuaData() {
 function renderTabelProduk(arrayData) {
     const tbody = document.getElementById('tabel-produk-body');
     tbody.innerHTML = '';
-    if(arrayData.length === 0) {
+    if (arrayData.length === 0) {
         tbody.innerHTML = `<tr><td colspan="10" class="p-8 text-center text-gray-400 italic">Belum ada data barang.</td></tr>`;
         return;
     }
     arrayData.forEach((item, index) => {
+        // Escape kutip satu pada kode dan nama produk untuk keamanan onclick
+        const safeKode = item.kode.replace(/'/g, "\\'");
+        const safeNama = item.nama_produk.replace(/'/g, "\\'");
         const row = `
             <tr class="border-b hover:bg-slate-50/80 transition duration-150">
                 <td class="p-2 md:p-4 font-medium text-gray-500">${index + 1}</td>
@@ -93,10 +96,10 @@ function renderTabelProduk(arrayData) {
                     </span>
                 </td>
                 <td class="p-2 md:p-4 text-center whitespace-nowrap">
-                    <button onclick="editProduk('${item.kode}')" class="text-blue-600 hover:text-blue-800 mr-3 transition" title="Edit">
-                        
+                    <button onclick="editProduk('${safeKode}')" class="text-blue-600 hover:text-blue-800 mr-3 transition" title="Edit">
+                        <i class="fa-solid fa-pen-to-square text-base"></i>
                     </button>
-                    <button onclick="hapusProduk('${item.kode}', '${item.nama_produk.replace(/'/g, "\\'")}')" class="text-red-600 hover:text-red-800 transition" title="Hapus">
+                    <button onclick="hapusProduk('${safeKode}', '${safeNama}')" class="text-red-600 hover:text-red-800 transition" title="Hapus">
                         <i class="fa-solid fa-trash-can text-base"></i>
                     </button>
                 </td>
@@ -110,7 +113,7 @@ function renderTabelProduk(arrayData) {
 function renderDashboard(ringkasan, terlaris, produk, riwayatHarian) {
     localRiwayatHarian = riwayatHarian || [];
 
-    if(ringkasan) {
+    if (ringkasan) {
         document.getElementById('dash-pemasukan').innerText = `Rp ${Number(ringkasan.hari_ini.pemasukan).toLocaleString('id-ID')}`;
         document.getElementById('dash-pengeluaran').innerText = `Rp ${Number(ringkasan.hari_ini.pengeluaran).toLocaleString('id-ID')}`;
         document.getElementById('dash-terjual').innerHTML = `${ringkasan.hari_ini.stok_terjual} <span class="text-xs font-normal text-gray-500">pcs</span>`;
@@ -118,10 +121,10 @@ function renderDashboard(ringkasan, terlaris, produk, riwayatHarian) {
         document.getElementById('dash-pengeluaran-bulan').innerText = `Rp ${Number(ringkasan.bulan_ini.pengeluaran).toLocaleString('id-ID')}`;
         document.getElementById('dash-kas').innerText = `Rp ${Number(ringkasan.kas_sekarang).toLocaleString('id-ID')}`;
     }
-    
+
     const divTerlaris = document.getElementById('list-terlaris');
     divTerlaris.innerHTML = '';
-    if(terlaris && terlaris.length > 0) {
+    if (terlaris && terlaris.length > 0) {
         terlaris.forEach(item => {
             divTerlaris.insertAdjacentHTML('beforeend', `
                 <div class="flex items-center justify-between p-2 hover:bg-gray-50 rounded-lg">
@@ -133,12 +136,14 @@ function renderDashboard(ringkasan, terlaris, produk, riwayatHarian) {
                 </div>
             `);
         });
-    } else { divTerlaris.innerHTML = '<p class="text-gray-400 italic text-sm">Belum ada penjualan bulan ini.</p>'; }
+    } else {
+        divTerlaris.innerHTML = '<p class="text-gray-400 italic text-sm">Belum ada penjualan bulan ini.</p>';
+    }
 
     const divMenipis = document.getElementById('list-menipis');
     divMenipis.innerHTML = '';
     const produkKritis = produk.filter(p => Number(p.stok) <= 5);
-    if(produkKritis.length > 0) {
+    if (produkKritis.length > 0) {
         produkKritis.forEach(item => {
             divMenipis.insertAdjacentHTML('beforeend', `
                 <div class="flex items-center justify-between p-2 hover:bg-gray-50 rounded-lg">
@@ -150,14 +155,16 @@ function renderDashboard(ringkasan, terlaris, produk, riwayatHarian) {
                 </div>
             `);
         });
-    } else { divMenipis.innerHTML = '<p class="text-green-600 font-medium text-xs"><i class="fa-solid fa-circle-check"></i> Aman! Semua stok di atas 5 pcs.</p>'; }
+    } else {
+        divMenipis.innerHTML = '<p class="text-green-600 font-medium text-xs"><i class="fa-solid fa-circle-check"></i> Aman! Semua stok di atas 5 pcs.</p>';
+    }
 }
 
 // ==================== FITUR PRODUK (Tambah, Edit, Hapus) ====================
 function cariProduk() {
     const keyword = document.getElementById('cari-produk').value.toLowerCase();
-    const hasilFilter = localDataProduk.filter(p => 
-        p.nama_produk.toLowerCase().includes(keyword) || 
+    const hasilFilter = localDataProduk.filter(p =>
+        p.nama_produk.toLowerCase().includes(keyword) ||
         p.kode.toLowerCase().includes(keyword)
     );
     renderTabelProduk(hasilFilter);
@@ -167,14 +174,15 @@ function cariProduk() {
 async function simpanProduk(event) {
     event.preventDefault();
     const btn = document.getElementById('btn-submit-prod');
-    btn.innerText = "Mengunggah data..."; btn.disabled = true;
+    btn.innerText = "Mengunggah data...";
+    btn.disabled = true;
 
     const kodeBaru = document.getElementById('prod-kode').value.trim();
-    // Validasi kode unik di frontend
     const kodeSudahAda = localDataProduk.some(p => p.kode === kodeBaru);
     if (kodeSudahAda) {
         tampilkanPopup("Kode produk sudah digunakan. Gunakan kode lain.", "gagal");
-        btn.innerText = "Simpan ke Sheets"; btn.disabled = false;
+        btn.innerText = "Simpan ke Sheets";
+        btn.disabled = false;
         return;
     }
 
@@ -201,7 +209,8 @@ async function simpanProduk(event) {
     } catch (error) {
         tampilkanPopup("Gagal memasukkan data produk: " + error.message, "gagal");
     }
-    btn.innerText = "Simpan ke Sheets"; btn.disabled = false;
+    btn.innerText = "Simpan ke Sheets";
+    btn.disabled = false;
 }
 
 // === EDIT PRODUK (membuka modal dengan data) ===
@@ -228,14 +237,15 @@ async function simpanEditProduk(event) {
     event.preventDefault();
     const btn = event.submitter;
     const originalText = btn.innerText;
-    btn.innerText = "Menyimpan..."; btn.disabled = true;
+    btn.innerText = "Menyimpan...";
+    btn.disabled = true;
 
     const kodeLama = document.getElementById('edit-prod-kode_lama').value;
     const payload = {
         action: "editProduk",
         kode_lama: kodeLama,
         nama_produk: document.getElementById('edit-prod-nama').value,
-        kode: document.getElementById('edit-prod-kode').value, // sama seperti kode_lama karena tidak diubah
+        kode: document.getElementById('edit-prod-kode').value,
         gambar: document.getElementById('edit-prod-gambar').value,
         size: document.getElementById('edit-prod-size').value,
         warna: document.getElementById('edit-prod-warna').value,
@@ -253,7 +263,8 @@ async function simpanEditProduk(event) {
     } catch (error) {
         tampilkanPopup("Gagal mengedit produk: " + error.message, "gagal");
     }
-    btn.innerText = originalText; btn.disabled = false;
+    btn.innerText = originalText;
+    btn.disabled = false;
 }
 
 function tutupModalEditProduk() {
@@ -301,9 +312,9 @@ function bukaModalRiwayat(tipe) {
     const header = document.getElementById('header-riwayat');
     const title = document.getElementById('title-riwayat');
     const container = document.getElementById('list-riwayat-body');
-    
+
     container.innerHTML = '';
-    
+
     if (tipe === 'masuk') {
         header.className = "px-5 py-4 border-b flex justify-between items-center bg-teal-600 text-white flex-shrink-0";
         title.innerHTML = '<i class="fa-solid fa-arrow-down-long text-teal-200 mr-2"></i> Jurnal Omset Bulan Ini';
@@ -311,9 +322,9 @@ function bukaModalRiwayat(tipe) {
         header.className = "px-5 py-4 border-b flex justify-between items-center bg-red-600 text-white flex-shrink-0";
         title.innerHTML = '<i class="fa-solid fa-arrow-up-long text-red-200 mr-2"></i> Jurnal Beban Bulan Ini';
     }
-    
+
     const riwayatValid = localRiwayatHarian.filter(r => tipe === 'masuk' ? r.pemasukan > 0 : r.pengeluaran > 0);
-    
+
     if (riwayatValid.length === 0) {
         container.innerHTML = `<div class="text-center py-12 flex flex-col items-center justify-center text-gray-400 bg-white rounded-xl border border-dashed">
             <i class="fa-solid fa-calendar-xmark text-2xl mb-2 text-gray-300"></i>
@@ -350,25 +361,7 @@ function tutupModalRiwayat() {
     setTimeout(() => modal.classList.add('hidden'), 150);
 }
 
-// ==================== TRANSAKSI (existing, dengan perbaikan harga jual otomatis) ====================
-function bukaSelectTipe() { /* ... sama seperti sebelumnya, tidak diubah */ }
-function tutupSelectTipe() { /* ... */ }
-function pilihTipe(val, label) { /* ... */ }
-function bukaSelectProduk() { /* ... */ }
-function tutupSelectProduk() { /* ... */ }
-function renderListSelectProduk(dataArray) { /* ... */ }
-function filterSelectProduk() { /* ... */ }
-function isiHargaJualBaruOtomatis() { /* ... sudah ada */ }
-function pilihProduk(kode) { /* ... sudah ada plus isiHargaJualBaruOtomatis */ }
-function resetFormTransaksiSelection() { /* ... */ }
-function ubahFormTransaksi() { /* ... */ }
-function isiHargaOtomatis() { /* ... */ }
-function hitungTotal() { /* ... */ }
-async function simpanTransaksi(event) { /* ... */ }
-
-// (Saya tidak tulis ulang fungsi transaksi karena tidak berubah, tetapi pastikan kode transaksi yang sudah diperbaiki sebelumnya tetap ada. Jika Anda menggunakan script.js versi terbaru dari chat sebelumnya, fungsi transaksi sudah lengkap. Di sini saya asumsikan Anda sudah punya. Untuk keamanan, saya sertakan fungsi transaksi yang sudah benar di bawah ini.)
-
-// ==================== FUNGSI TRANSAKSI (lengkap) ====================
+// ==================== TRANSAKSI ====================
 function bukaSelectTipe() {
     const modal = document.getElementById('modal-select-tipe');
     const box = document.getElementById('box-tipe-content');
@@ -408,14 +401,15 @@ function tutupSelectProduk() {
 function renderListSelectProduk(dataArray) {
     const container = document.getElementById('list-select-produk-container');
     container.innerHTML = '';
-    if(dataArray.length === 0) {
+    if (dataArray.length === 0) {
         container.innerHTML = `<div class="text-center py-12 flex flex-col items-center justify-center text-gray-400 bg-white rounded-xl border border-dashed">
             <i class="fa-solid fa-box-open text-3xl mb-2 text-gray-300"></i><p class="text-sm italic">Produk tidak ada dalam sistem.</p></div>`;
         return;
     }
     dataArray.forEach(p => {
+        const safeKode = p.kode.replace(/'/g, "\\'");
         container.insertAdjacentHTML('beforeend', `
-            <button type="button" onclick="pilihProduk('${p.kode}')" class="w-full text-left p-3 bg-white hover:bg-teal-50/50 rounded-xl flex items-center justify-between border border-gray-200/70 hover:border-teal-200 transition group shadow-sm">
+            <button type="button" onclick="pilihProduk('${safeKode}')" class="w-full text-left p-3 bg-white hover:bg-teal-50/50 rounded-xl flex items-center justify-between border border-gray-200/70 hover:border-teal-200 transition group shadow-sm">
                 <div class="flex items-center gap-3">
                     <img src="${p.gambar}" class="w-11 h-11 object-cover rounded-lg bg-gray-100 shadow-sm flex-shrink-0" onerror="this.src='https://placehold.co/40x40?text=📦'">
                     <div><p class="font-bold text-gray-900 text-sm group-hover:text-teal-600 transition truncate">${p.nama_produk}</p>
@@ -565,7 +559,8 @@ function hitungTotal() {
 async function simpanTransaksi(event) {
     event.preventDefault();
     const btn = document.getElementById('btn-submit-trx');
-    btn.innerText = "Menyimpan ke Sheets..."; btn.disabled = true;
+    btn.innerText = "Menyimpan ke Sheets...";
+    btn.disabled = true;
     const tipe = document.getElementById('trx-tipe').value;
     const kodeProduk = document.getElementById('trx-produk').value;
     const qty = tipe !== 'Pengeluaran Lain' ? Number(document.getElementById('trx-qty').value) : 0;
@@ -582,10 +577,20 @@ async function simpanTransaksi(event) {
     }
     if (tipe !== 'Pengeluaran Lain' && !kodeProduk) {
         tampilkanPopup("Pilih produk terlebih dahulu.", "gagal");
-        btn.innerText = "Simpan Catatan Keuangan"; btn.disabled = false;
+        btn.innerText = "Simpan Catatan Keuangan";
+        btn.disabled = false;
         return;
     }
-    const payload = { action: "addTransaksi", tipe, kode_produk: kodeProduk, qty, jumlah, keterangan, harga_satuan: hargaSatuan, harga_jual_baru: hargaJualBaru };
+    const payload = {
+        action: "addTransaksi",
+        tipe: tipe,
+        kode_produk: kodeProduk,
+        qty: qty,
+        jumlah: jumlah,
+        keterangan: keterangan,
+        harga_satuan: hargaSatuan,
+        harga_jual_baru: hargaJualBaru
+    };
     try {
         const response = await fetch(API_URL, { method: "POST", body: JSON.stringify(payload) });
         const result = await response.text();
@@ -598,7 +603,8 @@ async function simpanTransaksi(event) {
     } catch (error) {
         tampilkanPopup(error.message || "Gagal menyimpan data transaksi kas.", "gagal");
     }
-    btn.innerText = "Simpan Catatan Keuangan"; btn.disabled = false;
+    btn.innerText = "Simpan Catatan Keuangan";
+    btn.disabled = false;
 }
 
 // ==================== INIT ====================
