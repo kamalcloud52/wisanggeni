@@ -59,46 +59,104 @@ async function muatSemuaData() {
         renderDashboard(data.ringkasan, data.terlaris, localDataProduk, data.riwayat_harian);
     } catch (error) {
         console.error("Koneksi gagal:", error);
-        document.getElementById('daftar-produk-container').innerHTML = `<div class="col-span-full text-center text-red-500 font-medium p-8">Gagal memuat data. Periksa jaringan internet atau URL API.</div>`;
+        const tbody = document.getElementById('tbody-produk');
+        if (tbody) tbody.innerHTML = `<tr><td colspan="7" class="text-center text-red-500 font-medium p-8">Gagal memuat data. Periksa jaringan internet atau URL API.</td></tr>`;
     }
 }
 
-// Fungsi render untuk tab produk (menggunakan tampilan card seperti di modal select)
+// Fungsi render tabel produk modern dengan foto dan badge
 function renderTabelProduk(arrayData) {
-    const container = document.getElementById('daftar-produk-container');
-    container.innerHTML = '';
+    const tbody = document.getElementById('tbody-produk');
+    if (!tbody) return;
+    
     if(arrayData.length === 0) {
-        container.innerHTML = `<div class="col-span-full text-center text-gray-400 italic p-8">Belum ada data barang.</div>`;
+        tbody.innerHTML = `<tr><td colspan="7" class="text-center py-8 text-gray-400 italic">Belum ada data barang.</td></tr>`;
         return;
     }
+    
+    tbody.innerHTML = '';
     arrayData.forEach((item, index) => {
-        const stokBadge = item.stok <= 5 ? 
-            '<span class="text-[11px] font-bold text-red-700 bg-red-50 border-red-100 px-2 py-0.5 rounded-full border">Stok: ' + item.stok + '</span>' : 
-            '<span class="text-[11px] font-bold text-slate-600 bg-slate-100 border-slate-200 px-2 py-0.5 rounded-full border">Stok: ' + item.stok + '</span>';
+        // Badge stok
+        let stokBadge = '';
+        if (item.stok <= 5) {
+            stokBadge = `<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 border border-red-200">Sisa ${item.stok}</span>`;
+        } else {
+            stokBadge = `<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700 border border-gray-200">${item.stok}</span>`;
+        }
         
-        const card = `
-            <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden hover:shadow-md transition-all duration-200 flex flex-col">
-                <div class="flex items-start p-3 gap-3">
-                    <div class="flex-shrink-0 relative">
-                        <div class="absolute -top-2 -left-2 w-6 h-6 bg-teal-600 text-white rounded-full flex items-center justify-center text-xs font-bold shadow-md">${index+1}</div>
-                        <img src="${item.gambar}" class="w-16 h-16 object-cover rounded-lg bg-gray-100 shadow-sm" onerror="this.src='https://placehold.co/64x64?text=📦'">
-                    </div>
-                    <div class="flex-1 min-w-0">
-                        <div class="flex justify-between items-start gap-2 flex-wrap">
-                            <p class="font-bold text-gray-900 text-sm truncate">${item.nama_produk}</p>
-                            ${stokBadge}
-                        </div>
-                        <p class="text-xs text-gray-500 mt-1 font-mono">Kode: <span class="bg-gray-100 px-1.5 py-0.5 rounded font-semibold">${item.kode}</span> | Size: ${item.size}</p>
-                        <p class="text-xs text-gray-500">Warna: ${item.warna}</p>
-                        <div class="flex justify-between items-center mt-2">
-                            <span class="text-teal-600 font-bold text-sm">Rp ${Number(item.harga_jual).toLocaleString('id-ID')}</span>
-                            <span class="text-gray-400 text-[10px]">Modal: Rp ${Number(item.modal).toLocaleString('id-ID')}</span>
-                        </div>
-                    </div>
+        // Format harga
+        const hargaJualFormatted = `Rp ${Number(item.harga_jual).toLocaleString('id-ID')}`;
+        const modalFormatted = `Rp ${Number(item.modal).toLocaleString('id-ID')}`;
+        
+        // Nama dan warna
+        const namaProduk = item.nama_produk || '-';
+        const warnaProduk = item.warna || '-';
+        
+        const tr = document.createElement('tr');
+        tr.className = "hover:bg-gray-50 transition duration-150";
+        
+        // Kolom No
+        const tdNo = document.createElement('td');
+        tdNo.className = "px-4 py-4 text-sm text-gray-500 text-center";
+        tdNo.textContent = index + 1;
+        tr.appendChild(tdNo);
+        
+        // Kolom Produk (dengan foto)
+        const tdProduk = document.createElement('td');
+        tdProduk.className = "px-4 py-4";
+        tdProduk.innerHTML = `
+            <div class="flex items-center gap-3">
+                <img src="${item.gambar}" class="w-12 h-12 object-cover rounded-lg bg-gray-100 shadow-sm flex-shrink-0" onerror="this.src='https://placehold.co/48x48?text=📦'">
+                <div>
+                    <p class="font-bold text-gray-800 text-sm">${escapeHtml(namaProduk)}</p>
+                    <p class="text-xs text-gray-500 mt-0.5">Warna: ${escapeHtml(warnaProduk)}</p>
                 </div>
             </div>
         `;
-        container.insertAdjacentHTML('beforeend', card);
+        tr.appendChild(tdProduk);
+        
+        // Kolom Kode (badge)
+        const tdKode = document.createElement('td');
+        tdKode.className = "px-4 py-4";
+        tdKode.innerHTML = `<span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-mono font-medium bg-gray-100 text-gray-700 border border-gray-200">${escapeHtml(item.kode)}</span>`;
+        tr.appendChild(tdKode);
+        
+        // Kolom Size
+        const tdSize = document.createElement('td');
+        tdSize.className = "px-4 py-4 text-sm text-gray-600";
+        tdSize.textContent = item.size || '-';
+        tr.appendChild(tdSize);
+        
+        // Kolom Harga Jual (teal bold)
+        const tdHargaJual = document.createElement('td');
+        tdHargaJual.className = "px-4 py-4 text-sm font-bold text-teal-600";
+        tdHargaJual.textContent = hargaJualFormatted;
+        tr.appendChild(tdHargaJual);
+        
+        // Kolom Modal (abu-abu kecil)
+        const tdModal = document.createElement('td');
+        tdModal.className = "px-4 py-4 text-xs text-gray-500";
+        tdModal.textContent = modalFormatted;
+        tr.appendChild(tdModal);
+        
+        // Kolom Stok (badge)
+        const tdStok = document.createElement('td');
+        tdStok.className = "px-4 py-4";
+        tdStok.innerHTML = stokBadge;
+        tr.appendChild(tdStok);
+        
+        tbody.appendChild(tr);
+    });
+}
+
+// Helper untuk escape HTML
+function escapeHtml(str) {
+    if (!str) return '';
+    return str.replace(/[&<>]/g, function(m) {
+        if (m === '&') return '&amp;';
+        if (m === '<') return '&lt;';
+        if (m === '>') return '&gt;';
+        return m;
     });
 }
 
@@ -122,7 +180,7 @@ function renderDashboard(ringkasan, terlaris, produk, riwayatHarian) {
                 <div class="flex items-center justify-between p-2 hover:bg-gray-50 rounded-lg">
                     <div class="flex items-center gap-2 md:gap-3">
                         <div class="w-7 h-7 bg-teal-50 text-teal-600 rounded flex items-center justify-center font-bold text-xs"><i class="fa-solid fa-star"></i></div>
-                        <div><p class="font-semibold text-gray-800 text-sm">${item.nama}</p><p class="text-xs text-gray-400">Kode: ${item.kode}</p></div>
+                        <div><p class="font-semibold text-gray-800 text-sm">${escapeHtml(item.nama)}</p><p class="text-xs text-gray-400">Kode: ${escapeHtml(item.kode)}</p></div>
                     </div>
                     <span class="bg-orange-50 text-orange-700 text-xs font-bold px-2 py-1 rounded-full">${item.total_jual} Terjual</span>
                 </div>
@@ -139,7 +197,7 @@ function renderDashboard(ringkasan, terlaris, produk, riwayatHarian) {
                 <div class="flex items-center justify-between p-2 hover:bg-gray-50 rounded-lg">
                     <div class="flex items-center gap-2 md:gap-3">
                         <img src="${item.gambar}" class="w-7 h-7 object-cover rounded" onerror="this.src='https://placehold.co/40x40?text=📦'">
-                        <div><p class="font-semibold text-gray-800 text-sm">${item.nama_produk}</p><p class="text-xs text-gray-400">Size: ${item.size} | Warna: ${item.warna}</p></div>
+                        <div><p class="font-semibold text-gray-800 text-sm">${escapeHtml(item.nama_produk)}</p><p class="text-xs text-gray-400">Size: ${escapeHtml(item.size)} | Warna: ${escapeHtml(item.warna)}</p></div>
                     </div>
                     <span class="bg-red-50 text-red-700 text-xs font-bold px-2 py-1 rounded-full border border-red-200">Sisa ${item.stok}</span>
                 </div>
@@ -267,12 +325,12 @@ function renderListSelectProduk(dataArray) {
     }
     dataArray.forEach(p => {
         const itemBtn = `
-            <button type="button" onclick="pilihProduk('${p.kode}')" class="w-full text-left p-3 bg-white hover:bg-teal-50/50 rounded-xl flex items-center justify-between border border-gray-200/70 hover:border-teal-200 transition group shadow-sm">
+            <button type="button" onclick="pilihProduk('${escapeHtml(p.kode)}')" class="w-full text-left p-3 bg-white hover:bg-teal-50/50 rounded-xl flex items-center justify-between border border-gray-200/70 hover:border-teal-200 transition group shadow-sm">
                 <div class="flex items-center gap-3">
                     <img src="${p.gambar}" class="w-11 h-11 object-cover rounded-lg bg-gray-100 shadow-sm flex-shrink-0" onerror="this.src='https://placehold.co/40x40?text=📦'">
                     <div class="overflow-hidden">
-                        <p class="font-bold text-gray-900 text-sm group-hover:text-teal-600 transition truncate">${p.nama_produk}</p>
-                        <p class="text-xs text-gray-400 mt-0.5 font-medium">Kode: <span class="font-mono text-gray-600 bg-gray-100 px-1 rounded font-semibold">${p.kode}</span> | Size: ${p.size}</p>
+                        <p class="font-bold text-gray-900 text-sm group-hover:text-teal-600 transition truncate">${escapeHtml(p.nama_produk)}</p>
+                        <p class="text-xs text-gray-400 mt-0.5 font-medium">Kode: <span class="font-mono text-gray-600 bg-gray-100 px-1 rounded font-semibold">${escapeHtml(p.kode)}</span> | Size: ${escapeHtml(p.size)}</p>
                     </div>
                 </div>
                 <div class="text-right flex-shrink-0 pl-2">
