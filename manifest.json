@@ -3,8 +3,8 @@
   "short_name": "AdminStok",
   "start_url": "./index.html",
   "display": "standalone",
-  "background_color": "#12192B",
-  "theme_color": "#12192B",
+  "background_color": "#11182A",
+  "theme_color": "#11182A",
   "orientation": "portrait",
   "icons": [
     {
