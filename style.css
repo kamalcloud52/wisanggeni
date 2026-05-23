@@ -5,6 +5,8 @@
 .smooth-scroll {
     scroll-behavior: smooth;
 }
+
+/* Tambahan styling scrollbar untuk daftar produk (opsional) */
 #daftar-produk-container::-webkit-scrollbar {
     width: 6px;
 }
@@ -15,10 +17,4 @@
 #daftar-produk-container::-webkit-scrollbar-thumb {
     background: #cbd5e1;
     border-radius: 10px;
-}
-#box-tipe-content,
-#box-produk-content,
-#box-form-produk-content,
-#box-riwayat-content {
-    transition: all 0.2s ease-in-out;
 }
