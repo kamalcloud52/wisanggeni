@@ -6,21 +6,18 @@
     scroll-behavior: smooth;
 }
 
-/* Efek hover pada baris tabel */
+/* Tambahan untuk tampilan produk modern */
 tbody tr:hover {
     background-color: #f9fafb;
 }
 
-/* Badge stok transisi */
-tbody tr span {
+/* Badge stok dan kode */
+td span {
     transition: all 0.2s ease;
 }
 
-/* Pastikan modal muncul di atas elemen lain */
-#modal-select-produk,
-#modal-select-tipe,
-#modal-riwayat-harian,
-#modal-produk,
-#popup-kustom {
-    z-index: 9999 !important;
+/* Membuat gambar produk konsisten */
+td img {
+    background-color: #f3f4f6;
+    border: 1px solid #e5e7eb;
 }
