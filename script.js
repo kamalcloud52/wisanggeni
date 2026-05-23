@@ -13,13 +13,8 @@ function tampilkanPopup(pesan, tipe = 'sukses') {
     else icon.className = 'fa-solid fa-circle-info text-blue-500 text-4xl mb-3 block';
     pesanEl.textContent = pesan;
     popup.classList.remove('hidden');
-    popup.style.display = 'flex';
 }
-function tutupPopup() { 
-    const popup = document.getElementById('popup-kustom');
-    popup.classList.add('hidden');
-    popup.style.display = 'none';
-}
+function tutupPopup() { document.getElementById('popup-kustom').classList.add('hidden'); }
 
 function updateSapaan() {
     const jam = new Date().getHours();
@@ -37,21 +32,15 @@ function switchTab(tabName) {
     const titles = { 'dashboard': 'Dashboard', 'produk': 'Manajemen Data Stok', 'transaksi': 'Pencatatan Keuangan' };
     document.getElementById('page-title').innerText = titles[tabName];
 
-    // Update desktop nav
     ['dashboard', 'produk', 'transaksi'].forEach(t => {
         const btn = document.getElementById('btn-' + t);
-        if (btn) {
-            if (t === tabName) btn.className = "w-full flex items-center gap-3 px-4 py-3 bg-teal-600 rounded-lg text-white font-medium transition";
-            else btn.className = "w-full flex items-center gap-3 px-4 py-3 text-slate-300 hover:bg-slate-800 hover:text-white rounded-lg transition";
-        }
+        if (t === tabName) btn.className = "w-full flex items-center gap-3 px-4 py-3 bg-teal-600 rounded-lg text-white font-medium transition";
+        else btn.className = "w-full flex items-center gap-3 px-4 py-3 text-slate-300 hover:bg-slate-800 hover:text-white rounded-lg transition";
     });
-    // Update mobile nav
     ['dashboard', 'produk', 'transaksi'].forEach(t => {
         const mobBtn = document.getElementById('mob-btn-' + t);
-        if (mobBtn) {
-            if (t === tabName) mobBtn.className = "flex flex-col items-center text-xs font-medium p-2 rounded-lg transition-colors text-teal-400";
-            else mobBtn.className = "flex flex-col items-center text-xs font-medium p-2 rounded-lg transition-colors text-slate-400";
-        }
+        if (t === tabName) mobBtn.className = "flex flex-col items-center text-xs font-medium p-2 rounded-lg transition-colors text-teal-400";
+        else mobBtn.className = "flex flex-col items-center text-xs font-medium p-2 rounded-lg transition-colors text-slate-400";
     });
 
     if (tabName === 'transaksi') {
@@ -68,87 +57,110 @@ async function muatSemuaData() {
         localDataProduk = data.produk || [];
         renderTabelProduk(localDataProduk);
         renderDashboard(data.ringkasan, data.terlaris, localDataProduk, data.riwayat_harian);
-        return true;
     } catch (error) {
         console.error("Koneksi gagal:", error);
-        const tbody = document.getElementById('tbody-produk');
-        if (tbody) tbody.innerHTML = `<tr><td colspan="7" class="text-center text-red-500 font-medium p-8">Gagal memuat data. Periksa jaringan internet atau URL API.</td></tr>`;
-        return false;
+        document.getElementById('tabel-produk-body').innerHTML = `<tr><td colspan="9" class="p-4 text-center text-red-500 font-medium">Gagal memuat data. Periksa jaringan internet atau URL API.</td></tr>`;
     }
 }
 
+// ========== MODIFIKASI UTAMA: TAMPILAN PRODUK MODERN ==========
 function renderTabelProduk(arrayData) {
-    const tbody = document.getElementById('tbody-produk');
-    if (!tbody) return;
-    
-    if(arrayData.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="7" class="text-center py-8 text-gray-400 italic">Belum ada data barang.</td></tr>`;
+    const tbody = document.getElementById('tabel-produk-body');
+    tbody.innerHTML = '';
+    if (!arrayData || arrayData.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="9" class="p-8 text-center text-gray-400 italic">Belum ada data barang.</td></tr>`;
         return;
     }
-    
-    tbody.innerHTML = '';
+
     arrayData.forEach((item, index) => {
+        // Badge stok
         let stokBadge = '';
         if (item.stok <= 5) {
             stokBadge = `<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 border border-red-200">Sisa ${item.stok}</span>`;
         } else {
             stokBadge = `<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700 border border-gray-200">${item.stok}</span>`;
         }
-        
+
+        // Badge kode
+        const kodeBadge = `<span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-mono font-medium bg-gray-100 text-gray-700 border border-gray-200">${escapeHtml(item.kode)}</span>`;
+
+        // Format harga
         const hargaJualFormatted = `Rp ${Number(item.harga_jual).toLocaleString('id-ID')}`;
         const modalFormatted = `Rp ${Number(item.modal).toLocaleString('id-ID')}`;
-        const namaProduk = item.nama_produk || '-';
-        const warnaProduk = item.warna || '-';
-        
-        const tr = document.createElement('tr');
-        tr.className = "hover:bg-gray-50 transition duration-150 border-b";
-        
+
+        // Nama dan warna
+        const namaProduk = escapeHtml(item.nama_produk || '-');
+        const warnaProduk = escapeHtml(item.warna || '-');
+
+        const row = document.createElement('tr');
+        row.className = "border-b border-gray-100 hover:bg-gray-50 transition duration-150";
+
+        // Kolom No
         const tdNo = document.createElement('td');
-        tdNo.className = "px-4 py-4 text-sm text-gray-500 text-center";
+        tdNo.className = "p-2 md:p-4 text-sm text-gray-500 text-center";
         tdNo.textContent = index + 1;
-        tr.appendChild(tdNo);
-        
-        const tdProduk = document.createElement('td');
-        tdProduk.className = "px-4 py-4";
-        tdProduk.innerHTML = `
+        row.appendChild(tdNo);
+
+        // Kolom Nama Produk (dengan foto + nama + warna)
+        const tdNama = document.createElement('td');
+        tdNama.className = "p-2 md:p-4";
+        tdNama.innerHTML = `
             <div class="flex items-center gap-3">
-                <img src="${item.gambar}" class="w-12 h-12 object-cover rounded-lg bg-gray-100 shadow-sm flex-shrink-0" onerror="this.src='https://placehold.co/48x48?text=📦'">
+                <img src="${item.gambar || ''}" class="w-10 h-10 md:w-12 md:h-12 object-cover rounded-lg bg-gray-100 shadow-sm flex-shrink-0" onerror="this.src='https://placehold.co/48x48?text=📦'">
                 <div>
-                    <p class="font-bold text-gray-800 text-sm">${escapeHtml(namaProduk)}</p>
-                    <p class="text-xs text-gray-500 mt-0.5">Warna: ${escapeHtml(warnaProduk)}</p>
+                    <p class="font-bold text-gray-800 text-sm md:text-base">${namaProduk}</p>
+                    <p class="text-xs text-gray-500 mt-0.5">Warna: ${warnaProduk}</p>
                 </div>
             </div>
         `;
-        tr.appendChild(tdProduk);
-        
+        row.appendChild(tdNama);
+
+        // Kolom Gambar (biarkan kosong atau ikon kecil, karena foto sudah di kolom nama)
+        const tdGambar = document.createElement('td');
+        tdGambar.className = "p-2 md:p-4 hidden sm:table-cell text-center text-gray-400";
+        tdGambar.innerHTML = '<i class="fa-regular fa-image text-lg"></i>';
+        row.appendChild(tdGambar);
+
+        // Kolom Kode (badge)
         const tdKode = document.createElement('td');
-        tdKode.className = "px-4 py-4";
-        tdKode.innerHTML = `<span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-mono font-medium bg-gray-100 text-gray-700 border border-gray-200">${escapeHtml(item.kode)}</span>`;
-        tr.appendChild(tdKode);
-        
+        tdKode.className = "p-2 md:p-4";
+        tdKode.innerHTML = kodeBadge;
+        row.appendChild(tdKode);
+
+        // Kolom Size
         const tdSize = document.createElement('td');
-        tdSize.className = "px-4 py-4 text-sm text-gray-600";
+        tdSize.className = "p-2 md:p-4 text-sm text-gray-700";
         tdSize.textContent = item.size || '-';
-        tr.appendChild(tdSize);
-        
-        const tdHargaJual = document.createElement('td');
-        tdHargaJual.className = "px-4 py-4 text-sm font-bold text-teal-600";
-        tdHargaJual.textContent = hargaJualFormatted;
-        tr.appendChild(tdHargaJual);
-        
+        row.appendChild(tdSize);
+
+        // Kolom Warna (bisa diisi ulang agar konsisten, meskipun sudah ada di kolom nama)
+        const tdWarna = document.createElement('td');
+        tdWarna.className = "p-2 md:p-4 text-sm text-gray-600 hidden md:table-cell";
+        tdWarna.textContent = warnaProduk;
+        row.appendChild(tdWarna);
+
+        // Kolom Modal (abu-abu kecil)
         const tdModal = document.createElement('td');
-        tdModal.className = "px-4 py-4 text-xs text-gray-500";
+        tdModal.className = "p-2 md:p-4 text-xs text-gray-500 hidden md:table-cell";
         tdModal.textContent = modalFormatted;
-        tr.appendChild(tdModal);
-        
+        row.appendChild(tdModal);
+
+        // Kolom Harga Jual (teal tebal)
+        const tdHargaJual = document.createElement('td');
+        tdHargaJual.className = "p-2 md:p-4 text-sm font-bold text-teal-600";
+        tdHargaJual.textContent = hargaJualFormatted;
+        row.appendChild(tdHargaJual);
+
+        // Kolom Stok (badge)
         const tdStok = document.createElement('td');
-        tdStok.className = "px-4 py-4";
+        tdStok.className = "p-2 md:p-4";
         tdStok.innerHTML = stokBadge;
-        tr.appendChild(tdStok);
-        
-        tbody.appendChild(tr);
+        row.appendChild(tdStok);
+
+        tbody.appendChild(row);
     });
 }
+// ========== AKHIR MODIFIKASI ==========
 
 function escapeHtml(str) {
     if (!str) return '';
@@ -264,7 +276,6 @@ function bukaModalRiwayat(tipe) {
     }
 
     modal.classList.remove('hidden');
-    modal.style.display = 'flex';
     setTimeout(() => box.classList.add('modal-active'), 10);
 }
 
@@ -272,27 +283,20 @@ function tutupModalRiwayat() {
     const modal = document.getElementById('modal-riwayat-harian');
     const box = document.getElementById('box-riwayat-content');
     box.classList.remove('modal-active');
-    setTimeout(() => {
-        modal.classList.add('hidden');
-        modal.style.display = 'none';
-    }, 150);
+    setTimeout(() => modal.classList.add('hidden'), 150);
 }
 
 function bukaSelectTipe() {
     const modal = document.getElementById('modal-select-tipe');
     const box = document.getElementById('box-tipe-content');
     modal.classList.remove('hidden');
-    modal.style.display = 'flex';
     setTimeout(() => box.classList.add('modal-active'), 10);
 }
 function tutupSelectTipe() {
     const modal = document.getElementById('modal-select-tipe');
     const box = document.getElementById('box-tipe-content');
     box.classList.remove('modal-active');
-    setTimeout(() => {
-        modal.classList.add('hidden');
-        modal.style.display = 'none';
-    }, 150);
+    setTimeout(() => modal.classList.add('hidden'), 150);
 }
 function pilihTipe(val, label) {
     document.getElementById('trx-tipe').value = val;
@@ -302,57 +306,28 @@ function pilihTipe(val, label) {
     ubahFormTransaksi();
 }
 
-// PERBAIKAN MODAL SELECT PRODUK
 function bukaSelectProduk() {
     const modal = document.getElementById('modal-select-produk');
     const box = document.getElementById('box-produk-content');
-    if (!modal || !box) {
-        console.error("Elemen modal tidak ditemukan");
-        return;
-    }
-    
-    // Pastikan data produk sudah termuat
-    if (!localDataProduk || localDataProduk.length === 0) {
-        tampilkanPopup("Data produk sedang dimuat, silakan tunggu...", "info");
-        muatSemuaData().then(() => {
-            bukaSelectProduk(); // coba lagi setelah data siap
-        });
-        return;
-    }
-    
-    // Reset input cari
-    const inputCari = document.getElementById('cari-select-produk');
-    if (inputCari) inputCari.value = '';
-    
-    // Render daftar produk
-    renderListSelectProduk(localDataProduk);
-    
-    // Tampilkan modal
     modal.classList.remove('hidden');
-    modal.style.display = 'flex';
+    document.getElementById('cari-select-produk').value = '';
+    renderListSelectProduk(localDataProduk);
     setTimeout(() => {
         box.classList.add('modal-active');
-        if (inputCari) inputCari.focus();
-    }, 30);
+        document.getElementById('cari-select-produk').focus();
+    }, 10);
 }
-
 function tutupSelectProduk() {
     const modal = document.getElementById('modal-select-produk');
     const box = document.getElementById('box-produk-content');
-    if (!modal || !box) return;
     box.classList.remove('modal-active');
-    setTimeout(() => {
-        modal.classList.add('hidden');
-        modal.style.display = 'none';
-    }, 200);
+    setTimeout(() => modal.classList.add('hidden'), 150);
 }
 
 function renderListSelectProduk(dataArray) {
     const container = document.getElementById('list-select-produk-container');
-    if (!container) return;
-    
     container.innerHTML = '';
-    if (!dataArray || dataArray.length === 0) {
+    if(dataArray.length === 0) {
         container.innerHTML = `
             <div class="text-center py-12 flex flex-col items-center justify-center text-gray-400 bg-white rounded-xl border border-dashed">
                 <i class="fa-solid fa-box-open text-3xl mb-2 text-gray-300"></i>
@@ -360,14 +335,11 @@ function renderListSelectProduk(dataArray) {
             </div>`;
         return;
     }
-    
     dataArray.forEach(p => {
-        const itemDiv = document.createElement('div');
-        itemDiv.className = "p-1";
-        itemDiv.innerHTML = `
-            <button type="button" onclick="pilihProduk('${p.kode.replace(/'/g, "\\'")}')" class="w-full text-left p-3 bg-white hover:bg-teal-50/50 rounded-xl flex items-center justify-between border border-gray-200/70 hover:border-teal-200 transition group shadow-sm">
+        const itemBtn = `
+            <button type="button" onclick="pilihProduk('${p.kode}')" class="w-full text-left p-3 bg-white hover:bg-teal-50/50 rounded-xl flex items-center justify-between border border-gray-200/70 hover:border-teal-200 transition group shadow-sm">
                 <div class="flex items-center gap-3">
-                    <img src="${p.gambar || ''}" class="w-11 h-11 object-cover rounded-lg bg-gray-100 shadow-sm flex-shrink-0" onerror="this.src='https://placehold.co/40x40?text=📦'">
+                    <img src="${p.gambar}" class="w-11 h-11 object-cover rounded-lg bg-gray-100 shadow-sm flex-shrink-0" onerror="this.src='https://placehold.co/40x40?text=📦'">
                     <div class="overflow-hidden">
                         <p class="font-bold text-gray-900 text-sm group-hover:text-teal-600 transition truncate">${escapeHtml(p.nama_produk)}</p>
                         <p class="text-xs text-gray-400 mt-0.5 font-medium">Kode: <span class="font-mono text-gray-600 bg-gray-100 px-1 rounded font-semibold">${escapeHtml(p.kode)}</span> | Size: ${escapeHtml(p.size)}</p>
@@ -379,7 +351,7 @@ function renderListSelectProduk(dataArray) {
                 </div>
             </button>
         `;
-        container.appendChild(itemDiv);
+        container.insertAdjacentHTML('beforeend', itemBtn);
     });
 }
 
@@ -397,21 +369,18 @@ function pilihProduk(kode) {
     if (produk) {
         selectedProductData = produk;
         document.getElementById('trx-produk').value = produk.kode;
-        const spanEl = document.getElementById('text-select-produk');
-        spanEl.innerText = `${produk.nama_produk} (${produk.kode})`;
-        spanEl.className = "text-gray-900 font-semibold";
+        document.getElementById('text-select-produk').innerText = `${produk.nama_produk} (${produk.kode})`;
+        document.getElementById('text-select-produk').className = "text-gray-900 font-semibold";
         tutupSelectProduk();
         isiHargaOtomatis();
-        ubahFormTransaksi(); // refresh form sesuai tipe
     }
 }
 
 function resetFormTransaksiSelection() {
     selectedProductData = null;
     document.getElementById('trx-produk').value = "";
-    const spanEl = document.getElementById('text-select-produk');
-    spanEl.innerText = "-- Pilih Produk --";
-    spanEl.className = "text-gray-400 font-medium";
+    document.getElementById('text-select-produk').innerText = "-- Pilih Produk --";
+    document.getElementById('text-select-produk').className = "text-gray-400 font-medium";
     document.getElementById('harga-satuan-text').textContent = '-';
     document.getElementById('trx-harga-satuan').value = '';
     document.getElementById('trx-harga-jual-baru').value = '';
@@ -470,8 +439,10 @@ function ubahFormTransaksi() {
 function isiHargaOtomatis() {
     const tipe = document.getElementById('trx-tipe').value;
     const spanHarga = document.getElementById('harga-satuan-text');
-    if (selectedProductData && tipe === 'Penjualan') {
-        spanHarga.textContent = `Rp ${Number(selectedProductData.harga_jual).toLocaleString('id-ID')}`;
+    if (selectedProductData) {
+        if (tipe === 'Penjualan') {
+            spanHarga.textContent = `Rp ${Number(selectedProductData.harga_jual).toLocaleString('id-ID')}`;
+        }
     } else {
         spanHarga.textContent = '-';
     }
@@ -592,17 +563,13 @@ function bukaModalProduk() {
     const modal = document.getElementById('modal-produk');
     const box = document.getElementById('box-form-produk-content');
     modal.classList.remove('hidden');
-    modal.style.display = 'flex';
     setTimeout(() => box.classList.add('modal-active'), 10);
 }
 function tutupModalProduk() {
     const modal = document.getElementById('modal-produk');
     const box = document.getElementById('box-form-produk-content');
     box.classList.remove('modal-active');
-    setTimeout(() => {
-        modal.classList.add('hidden');
-        modal.style.display = 'none';
-    }, 150);
+    setTimeout(() => modal.classList.add('hidden'), 150);
 }
 
 document.addEventListener('DOMContentLoaded', () => {
