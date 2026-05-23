@@ -147,7 +147,7 @@
                     </div>
                 </div>
 
-                <!-- Produk Tab (Card View seperti modal pencarian, dengan nomor urut) -->
+                <!-- Produk Tab -->
                 <div id="tab-produk" class="space-y-4 md:space-y-6 tab-content hidden">
                     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 md:gap-4 bg-white p-3 md:p-4 rounded-xl shadow-sm border">
                         <div class="relative w-full sm:w-72">
@@ -159,19 +159,13 @@
                         </button>
                     </div>
 
-                    <!-- Container daftar produk (card) -->
-                    <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-                        <div class="p-3 bg-slate-50 border-b flex justify-between items-center text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                            <span>Daftar Produk</span>
-                            <span class="text-teal-600" id="total-produk-count">0 produk</span>
-                        </div>
-                        <div id="daftar-produk-container" class="divide-y divide-gray-100 max-h-[70vh] overflow-y-auto">
-                            <div class="p-6 text-center text-gray-400 italic">Memuat data produk...</div>
-                        </div>
+                    <!-- Container list produk (kartu dengan nomor) -->
+                    <div id="list-produk-container" class="space-y-3">
+                        <div class="text-center py-10 text-gray-500 italic">Memuat data produk...</div>
                     </div>
                 </div>
 
-                <!-- Transaksi Tab (tidak diubah) -->
+                <!-- Transaksi Tab -->
                 <div id="tab-transaksi" class="w-full max-w-xl mx-auto bg-white p-6 md:p-8 rounded-xl shadow-sm border border-gray-200 tab-content hidden">
                     <h2 class="text-lg md:text-xl font-bold text-gray-800 mb-4 md:mb-6 flex items-center gap-2 border-b pb-3">
                         <i class="fa-solid fa-file-invoice-dollar text-teal-600"></i> Catat Keuangan Baru
@@ -200,11 +194,13 @@
                                 <label class="block text-sm font-semibold text-gray-700 mb-1">Jumlah (Qty)</label>
                                 <input type="number" id="trx-qty" value="1" min="1" class="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-teal-500 focus:outline-none" oninput="hitungTotal()" required>
                             </div>
+                            <!-- Harga Satuan dinamis -->
                             <div id="harga-satuan-box" class="text-sm text-gray-500 font-medium">
                                 <span id="label-harga-satuan">Harga Satuan:</span>
                                 <span id="harga-satuan-text" class="text-teal-600 font-bold">-</span>
                                 <input type="number" id="trx-harga-satuan" class="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-teal-500 focus:outline-none bg-white font-medium hidden" placeholder="Masukkan harga kulakan" min="0" oninput="hitungTotal()">
                             </div>
+                            <!-- ⭐ Input Harga Jual Baru (hanya muncul saat Pembelian Stok) -->
                             <div id="box-harga-jual-baru" class="hidden">
                                 <label class="block text-sm font-semibold text-gray-700 mb-1">Harga Jual Baru (Opsional)</label>
                                 <input type="number" id="trx-harga-jual-baru" class="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-teal-500 focus:outline-none bg-white font-medium" placeholder="Biarkan kosong jika tidak berubah" min="0">
@@ -229,7 +225,7 @@
         </div>
     </div>
 
-    <!-- Mobile Bottom Nav (tidak diubah) -->
+    <!-- Mobile Bottom Nav -->
     <div class="fixed bottom-0 left-0 right-0 bg-slate-900 text-white flex lg:hidden justify-around items-center h-16 z-50 shadow-[0_-2px_10px_rgba(0,0,0,0.2)]" id="mobile-nav">
         <button onclick="switchTab('dashboard')" id="mob-btn-dashboard" class="flex flex-col items-center text-xs font-medium p-2 rounded-lg transition-colors">
             <i class="fa-solid fa-chart-pie text-lg"></i> Dashboard
@@ -242,7 +238,7 @@
         </button>
     </div>
 
-    <!-- Modal Select Tipe (tidak diubah) -->
+    <!-- Modal Select Tipe -->
     <div id="modal-select-tipe" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60] flex items-center justify-center hidden p-4 transition-all duration-300">
         <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden flex flex-col scale-95 opacity-0 transition-all duration-300 transform" id="box-tipe-content">
             <div class="px-5 py-4 border-b flex justify-between items-center bg-slate-900 text-white">
@@ -257,7 +253,7 @@
         </div>
     </div>
 
-    <!-- Modal Select Produk (tidak diubah) -->
+    <!-- Modal Select Produk -->
     <div id="modal-select-produk" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60] flex items-center justify-center hidden p-4 md:p-6 transition-all duration-300">
         <div class="bg-white rounded-2xl shadow-2xl w-full max-w-xl h-[82vh] md:h-[78vh] overflow-hidden flex flex-col scale-95 opacity-0 transition-all duration-300 transform" id="box-produk-content">
             <div class="px-5 py-4 border-b flex justify-between items-center bg-slate-900 text-white flex-shrink-0">
@@ -270,11 +266,12 @@
                     <input type="text" id="cari-select-produk" oninput="filterSelectProduk()" class="w-full pl-9 pr-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500 text-sm bg-white font-medium" placeholder="Ketik nama atau kode produk...">
                 </div>
             </div>
-            <div id="list-select-produk-container" class="divide-y divide-gray-100 overflow-y-auto p-3 flex-1 space-y-1.5 bg-gray-50/50"></div>
+            <div id="list-select-produk-container" class="divide-y divide-gray-100 overflow-y-auto p-3 flex-1 space-y-1.5 bg-gray-50/50">
+            </div>
         </div>
     </div>
 
-    <!-- Modal Tambah Produk (tidak diubah) -->
+    <!-- Modal Tambah Produk -->
     <div id="modal-produk" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
         <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden scale-95 opacity-0 transition-all duration-300 transform" id="box-form-produk-content">
             <div class="bg-slate-900 text-white px-5 md:px-6 py-4 flex justify-between items-center">
@@ -324,7 +321,7 @@
         </div>
     </div>
 
-    <!-- Modal Riwayat Harian (tidak diubah) -->
+    <!-- Modal Riwayat Harian -->
     <div id="modal-riwayat-harian" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60] flex items-center justify-center hidden p-4 transition-all duration-300">
         <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md h-[75vh] overflow-hidden flex flex-col scale-95 opacity-0 transition-all duration-300 transform" id="box-riwayat-content">
             <div id="header-riwayat" class="px-5 py-4 border-b flex justify-between items-center text-white flex-shrink-0">
@@ -335,11 +332,12 @@
                 <span>Daftar Tanggal Aktif</span>
                 <span>Subtotal Rupiah</span>
             </div>
-            <div id="list-riwayat-body" class="p-3 overflow-y-auto space-y-2 bg-gray-50/50 flex-1"></div>
+            <div id="list-riwayat-body" class="p-3 overflow-y-auto space-y-2 bg-gray-50/50 flex-1">
+            </div>
         </div>
     </div>
 
-    <!-- Popup Kustom (tidak diubah) -->
+    <!-- Popup Kustom -->
     <div id="popup-kustom" class="fixed inset-0 z-[60] flex items-center justify-center hidden bg-black/50 p-4">
         <div class="bg-white rounded-xl shadow-xl p-6 max-w-sm w-full text-center">
             <i id="popup-icon" class="text-4xl mb-3 block"></i>
