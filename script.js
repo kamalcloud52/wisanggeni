@@ -50,14 +50,14 @@ function switchTab(tabName) {
     if (tabName === 'dashboard') updateSapaan();
 }
 
-// ========== RENDER PRODUK VERSI CARD + NOMOR URUT ==========
+// ========== RENDER PRODUK VERSI CARD (DENGAN NOMOR URUT) ==========
 function renderProdukList(produkArray) {
     const container = document.getElementById('daftar-produk-container');
     const totalSpan = document.getElementById('total-produk-count');
     if (!container) return;
 
     container.innerHTML = '';
-    if (!produkArray.length) {
+    if (!produkArray || produkArray.length === 0) {
         container.innerHTML = `<div class="text-center py-12 text-gray-400 italic">Belum ada data produk.</div>`;
         if (totalSpan) totalSpan.innerText = '0 produk';
         return;
@@ -66,29 +66,47 @@ function renderProdukList(produkArray) {
     if (totalSpan) totalSpan.innerText = `${produkArray.length} produk`;
 
     produkArray.forEach((item, idx) => {
-        const stokClass = item.stok <= 5 ? 'bg-red-50 text-red-700 border-red-200' : 'bg-green-50 text-green-700 border-green-200';
+        // Validasi item
+        if (!item) return;
+        const stok = Number(item.stok) || 0;
+        const stokClass = stok <= 5 ? 'bg-red-50 text-red-700 border-red-200' : 'bg-green-50 text-green-700 border-green-200';
+        const nama = (item.nama_produk || '').replace(/[&<>]/g, function(m) {
+            if (m === '&') return '&amp;';
+            if (m === '<') return '&lt;';
+            if (m === '>') return '&gt;';
+            return m;
+        });
+        const kode = (item.kode || '').replace(/[&<>]/g, function(m) {
+            if (m === '&') return '&amp;';
+            if (m === '<') return '&lt;';
+            if (m === '>') return '&gt;';
+            return m;
+        });
+        const size = (item.size || '');
+        const warna = (item.warna || '');
+        const modal = Number(item.modal) || 0;
+        const hargaJual = Number(item.harga_jual) || 0;
+        const gambar = item.gambar || 'https://placehold.co/48x48?text=📦';
+        
         const card = `
             <div class="flex items-center justify-between p-4 hover:bg-teal-50/30 transition border-b border-gray-100">
                 <div class="flex items-center gap-4 flex-1">
-                    <!-- Nomor urut -->
                     <div class="w-8 text-center text-gray-400 font-bold text-sm">${idx + 1}</div>
-                    <!-- Gambar -->
-                    <img src="${item.gambar}" class="w-12 h-12 object-cover rounded-lg bg-gray-100 shadow-sm" onerror="this.src='https://placehold.co/48x48?text=📦'">
-                    <!-- Info utama -->
+                    <img src="${gambar}" class="w-12 h-12 object-cover rounded-lg bg-gray-100 shadow-sm" onerror="this.src='https://placehold.co/48x48?text=📦'">
                     <div class="flex-1">
-                        <p class="font-bold text-gray-800 text-sm md:text-base">${escapeHtml(item.nama_produk)}</p>
+                        <p class="font-bold text-gray-800 text-sm md:text-base">${nama}</p>
                         <div class="flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500 mt-0.5">
-                            <span><span class="font-mono bg-gray-100 px-1 rounded">${escapeHtml(item.kode)}</span></span>
-                            <span>📏 Size: ${escapeHtml(item.size)}</span>
-                            <span>🎨 Warna: ${escapeHtml(item.warna)}</span>
-                            <span class="hidden md:inline">💰 Modal: Rp ${Number(item.modal).toLocaleString('id-ID')}</span>
+                            <span><span class="font-mono bg-gray-100 px-1 rounded">${kode}</span></span>
+                            <span>📏 Size: ${size}</span>
+                            <span>🎨 Warna: ${warna}</span>
+                            <span class="hidden md:inline">💰 Modal: Rp ${modal.toLocaleString('id-ID')}</span>
                         </div>
                     </div>
                 </div>
                 <div class="text-right flex-shrink-0 pl-3">
-                    <span class="text-sm font-bold text-teal-600">Rp ${Number(item.harga_jual).toLocaleString('id-ID')}</span>
+                    <span class="text-sm font-bold text-teal-600">Rp ${hargaJual.toLocaleString('id-ID')}</span>
                     <div class="mt-1">
-                        <span class="inline-block px-2 py-0.5 rounded-full text-xs font-bold ${stokClass} border">Stok: ${item.stok}</span>
+                        <span class="inline-block px-2 py-0.5 rounded-full text-xs font-bold ${stokClass} border">Stok: ${stok}</span>
                     </div>
                 </div>
             </div>
@@ -97,22 +115,12 @@ function renderProdukList(produkArray) {
     });
 }
 
-// helper sederhana untuk menghindari XSS
-function escapeHtml(str) {
-    if (!str) return '';
-    return str.replace(/[&<>]/g, function(m) {
-        if (m === '&') return '&amp;';
-        if (m === '<') return '&lt;';
-        if (m === '>') return '&gt;';
-        return m;
-    });
-}
-
 async function muatSemuaData() {
     try {
         const respon = await fetch(API_URL);
         const data = await respon.json();
         localDataProduk = data.produk || [];
+        // Gunakan fungsi render yang baru
         renderProdukList(localDataProduk);
         renderDashboard(data.ringkasan, data.terlaris, localDataProduk, data.riwayat_harian);
     } catch (error) {
@@ -144,7 +152,7 @@ function renderDashboard(ringkasan, terlaris, produk, riwayatHarian) {
                 <div class="flex items-center justify-between p-2 hover:bg-gray-50 rounded-lg">
                     <div class="flex items-center gap-2 md:gap-3">
                         <div class="w-7 h-7 bg-teal-50 text-teal-600 rounded flex items-center justify-center font-bold text-xs"><i class="fa-solid fa-star"></i></div>
-                        <div><p class="font-semibold text-gray-800 text-sm">${escapeHtml(item.nama)}</p><p class="text-xs text-gray-400">Kode: ${escapeHtml(item.kode)}</p></div>
+                        <div><p class="font-semibold text-gray-800 text-sm">${item.nama}</p><p class="text-xs text-gray-400">Kode: ${item.kode}</p></div>
                     </div>
                     <span class="bg-orange-50 text-orange-700 text-xs font-bold px-2 py-1 rounded-full">${item.total_jual} Terjual</span>
                 </div>
@@ -161,7 +169,7 @@ function renderDashboard(ringkasan, terlaris, produk, riwayatHarian) {
                 <div class="flex items-center justify-between p-2 hover:bg-gray-50 rounded-lg">
                     <div class="flex items-center gap-2 md:gap-3">
                         <img src="${item.gambar}" class="w-7 h-7 object-cover rounded" onerror="this.src='https://placehold.co/40x40?text=📦'">
-                        <div><p class="font-semibold text-gray-800 text-sm">${escapeHtml(item.nama_produk)}</p><p class="text-xs text-gray-400">Size: ${escapeHtml(item.size)} | Warna: ${escapeHtml(item.warna)}</p></div>
+                        <div><p class="font-semibold text-gray-800 text-sm">${item.nama_produk}</p><p class="text-xs text-gray-400">Size: ${item.size} | Warna: ${item.warna}</p></div>
                     </div>
                     <span class="bg-red-50 text-red-700 text-xs font-bold px-2 py-1 rounded-full border border-red-200">Sisa ${item.stok}</span>
                 </div>
@@ -279,7 +287,7 @@ function tutupSelectProduk() {
 function renderListSelectProduk(dataArray) {
     const container = document.getElementById('list-select-produk-container');
     container.innerHTML = '';
-    if(dataArray.length === 0) {
+    if(!dataArray || dataArray.length === 0) {
         container.innerHTML = `
             <div class="text-center py-12 flex flex-col items-center justify-center text-gray-400 bg-white rounded-xl border border-dashed">
                 <i class="fa-solid fa-box-open text-3xl mb-2 text-gray-300"></i>
@@ -293,8 +301,8 @@ function renderListSelectProduk(dataArray) {
                 <div class="flex items-center gap-3">
                     <img src="${p.gambar}" class="w-11 h-11 object-cover rounded-lg bg-gray-100 shadow-sm flex-shrink-0" onerror="this.src='https://placehold.co/40x40?text=📦'">
                     <div class="overflow-hidden">
-                        <p class="font-bold text-gray-900 text-sm group-hover:text-teal-600 transition truncate">${escapeHtml(p.nama_produk)}</p>
-                        <p class="text-xs text-gray-400 mt-0.5 font-medium">Kode: <span class="font-mono text-gray-600 bg-gray-100 px-1 rounded font-semibold">${escapeHtml(p.kode)}</span> | Size: ${escapeHtml(p.size)}</p>
+                        <p class="font-bold text-gray-900 text-sm group-hover:text-teal-600 transition truncate">${p.nama_produk}</p>
+                        <p class="text-xs text-gray-400 mt-0.5 font-medium">Kode: <span class="font-mono text-gray-600 bg-gray-100 px-1 rounded font-semibold">${p.kode}</span> | Size: ${p.size}</p>
                     </div>
                 </div>
                 <div class="text-right flex-shrink-0 pl-2">
