@@ -46,21 +46,26 @@
 
             <main class="p-4 md:p-8">
                 
-                <!-- Dashboard Tab -->
                 <div id="tab-dashboard" class="space-y-6 md:space-y-8 tab-content">
                     
-                    <!-- Sapaan Personal & Nama Toko -->
-                    <div class="bg-gradient-to-r from-teal-500 to-cyan-600 rounded-2xl shadow-lg p-6 text-white">
-                        <div class="flex items-center justify-between">
+                    <div class="bg-gradient-to-r from-teal-500 to-cyan-600 rounded-2xl shadow-lg p-6 text-white relative overflow-hidden">
+                        <div class="flex items-center justify-between relative z-10">
                             <div>
-                                <h2 id="sapaan-text" class="text-2xl md:text-3xl font-bold tracking-tight">Selamat Pagi, Faza 👋🏻</h2>
-                                <p class="text-teal-100 text-sm md:text-base mt-1 font-medium">🏪 Wisanggeni ID</p>
+                                <h2 id="sapaan-text" class="text-2xl md:text-3xl font-bold tracking-tight flex items-center gap-2">
+                                    Selamat Pagi, Faza <i class="fa-solid fa-hand-wave text-xl md:text-2xl"></i>
+                                </h2>
+                                <p class="text-teal-100 text-sm md:text-base mt-1 font-medium flex items-center gap-2">
+                                    <i class="fa-solid fa-store text-xs md:text-sm"></i> Wisanggeni ID
+                                </p>
                             </div>
-                            <div class="hidden sm:block text-teal-200/40 text-6xl">
+                            
+                            <div class="text-teal-200/20 text-5xl absolute right-6 top-1/2 -translate-y-1/2 sm:translate-y-0 sm:top-auto sm:relative sm:right-0 text-6xl sm:text-teal-200/40">
                                 <i class="fa-solid fa-store"></i>
                             </div>
                         </div>
                     </div>
+
+                </div>
 
                     <!-- Arus Kas Hari Ini -->
                     <div>
