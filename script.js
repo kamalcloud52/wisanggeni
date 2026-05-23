@@ -57,14 +57,15 @@ async function muatSemuaData() {
         localDataProduk = data.produk || [];
         renderTabelProduk(localDataProduk);
         renderDashboard(data.ringkasan, data.terlaris, localDataProduk, data.riwayat_harian);
+        return true;
     } catch (error) {
         console.error("Koneksi gagal:", error);
         const tbody = document.getElementById('tbody-produk');
         if (tbody) tbody.innerHTML = `<tr><td colspan="7" class="text-center text-red-500 font-medium p-8">Gagal memuat data. Periksa jaringan internet atau URL API.</td></tr>`;
+        return false;
     }
 }
 
-// Fungsi render tabel produk modern dengan foto dan badge
 function renderTabelProduk(arrayData) {
     const tbody = document.getElementById('tbody-produk');
     if (!tbody) return;
@@ -76,7 +77,6 @@ function renderTabelProduk(arrayData) {
     
     tbody.innerHTML = '';
     arrayData.forEach((item, index) => {
-        // Badge stok
         let stokBadge = '';
         if (item.stok <= 5) {
             stokBadge = `<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 border border-red-200">Sisa ${item.stok}</span>`;
@@ -84,24 +84,19 @@ function renderTabelProduk(arrayData) {
             stokBadge = `<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700 border border-gray-200">${item.stok}</span>`;
         }
         
-        // Format harga
         const hargaJualFormatted = `Rp ${Number(item.harga_jual).toLocaleString('id-ID')}`;
         const modalFormatted = `Rp ${Number(item.modal).toLocaleString('id-ID')}`;
-        
-        // Nama dan warna
         const namaProduk = item.nama_produk || '-';
         const warnaProduk = item.warna || '-';
         
         const tr = document.createElement('tr');
         tr.className = "hover:bg-gray-50 transition duration-150";
         
-        // Kolom No
         const tdNo = document.createElement('td');
         tdNo.className = "px-4 py-4 text-sm text-gray-500 text-center";
         tdNo.textContent = index + 1;
         tr.appendChild(tdNo);
         
-        // Kolom Produk (dengan foto)
         const tdProduk = document.createElement('td');
         tdProduk.className = "px-4 py-4";
         tdProduk.innerHTML = `
@@ -115,31 +110,26 @@ function renderTabelProduk(arrayData) {
         `;
         tr.appendChild(tdProduk);
         
-        // Kolom Kode (badge)
         const tdKode = document.createElement('td');
         tdKode.className = "px-4 py-4";
         tdKode.innerHTML = `<span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-mono font-medium bg-gray-100 text-gray-700 border border-gray-200">${escapeHtml(item.kode)}</span>`;
         tr.appendChild(tdKode);
         
-        // Kolom Size
         const tdSize = document.createElement('td');
         tdSize.className = "px-4 py-4 text-sm text-gray-600";
         tdSize.textContent = item.size || '-';
         tr.appendChild(tdSize);
         
-        // Kolom Harga Jual (teal bold)
         const tdHargaJual = document.createElement('td');
         tdHargaJual.className = "px-4 py-4 text-sm font-bold text-teal-600";
         tdHargaJual.textContent = hargaJualFormatted;
         tr.appendChild(tdHargaJual);
         
-        // Kolom Modal (abu-abu kecil)
         const tdModal = document.createElement('td');
         tdModal.className = "px-4 py-4 text-xs text-gray-500";
         tdModal.textContent = modalFormatted;
         tr.appendChild(tdModal);
         
-        // Kolom Stok (badge)
         const tdStok = document.createElement('td');
         tdStok.className = "px-4 py-4";
         tdStok.innerHTML = stokBadge;
@@ -149,7 +139,6 @@ function renderTabelProduk(arrayData) {
     });
 }
 
-// Helper untuk escape HTML
 function escapeHtml(str) {
     if (!str) return '';
     return str.replace(/[&<>]/g, function(m) {
@@ -274,15 +263,18 @@ function tutupModalRiwayat() {
     setTimeout(() => modal.classList.add('hidden'), 150);
 }
 
+// === PERBAIKAN MODAL SELECT TIPE & PRODUK ===
 function bukaSelectTipe() {
     const modal = document.getElementById('modal-select-tipe');
     const box = document.getElementById('box-tipe-content');
+    if (!modal || !box) return;
     modal.classList.remove('hidden');
     setTimeout(() => box.classList.add('modal-active'), 10);
 }
 function tutupSelectTipe() {
     const modal = document.getElementById('modal-select-tipe');
     const box = document.getElementById('box-tipe-content');
+    if (!modal || !box) return;
     box.classList.remove('modal-active');
     setTimeout(() => modal.classList.add('hidden'), 150);
 }
@@ -294,28 +286,53 @@ function pilihTipe(val, label) {
     ubahFormTransaksi();
 }
 
+// PERBAIKAN UTAMA: bukaSelectProduk dengan pengecekan data
 function bukaSelectProduk() {
     const modal = document.getElementById('modal-select-produk');
     const box = document.getElementById('box-produk-content');
-    modal.classList.remove('hidden');
-    document.getElementById('cari-select-produk').value = '';
+    if (!modal || !box) {
+        console.error("Elemen modal tidak ditemukan");
+        return;
+    }
+    
+    // Pastikan data produk sudah termuat
+    if (!localDataProduk || localDataProduk.length === 0) {
+        tampilkanPopup("Data produk sedang dimuat, silakan tunggu...", "info");
+        muatSemuaData().then(() => {
+            bukaSelectProduk(); // coba lagi setelah data siap
+        });
+        return;
+    }
+    
+    // Reset input cari
+    const inputCari = document.getElementById('cari-select-produk');
+    if (inputCari) inputCari.value = '';
+    
+    // Render daftar produk
     renderListSelectProduk(localDataProduk);
+    
+    // Tampilkan modal dengan animasi
+    modal.classList.remove('hidden');
     setTimeout(() => {
         box.classList.add('modal-active');
-        document.getElementById('cari-select-produk').focus();
-    }, 10);
+        if (inputCari) inputCari.focus();
+    }, 30);
 }
+
 function tutupSelectProduk() {
     const modal = document.getElementById('modal-select-produk');
     const box = document.getElementById('box-produk-content');
+    if (!modal || !box) return;
     box.classList.remove('modal-active');
-    setTimeout(() => modal.classList.add('hidden'), 150);
+    setTimeout(() => modal.classList.add('hidden'), 200);
 }
 
 function renderListSelectProduk(dataArray) {
     const container = document.getElementById('list-select-produk-container');
+    if (!container) return;
+    
     container.innerHTML = '';
-    if(dataArray.length === 0) {
+    if (!dataArray || dataArray.length === 0) {
         container.innerHTML = `
             <div class="text-center py-12 flex flex-col items-center justify-center text-gray-400 bg-white rounded-xl border border-dashed">
                 <i class="fa-solid fa-box-open text-3xl mb-2 text-gray-300"></i>
@@ -323,24 +340,32 @@ function renderListSelectProduk(dataArray) {
             </div>`;
         return;
     }
-    dataArray.forEach(p => {
-        const itemBtn = `
-            <button type="button" onclick="pilihProduk('${escapeHtml(p.kode)}')" class="w-full text-left p-3 bg-white hover:bg-teal-50/50 rounded-xl flex items-center justify-between border border-gray-200/70 hover:border-teal-200 transition group shadow-sm">
-                <div class="flex items-center gap-3">
-                    <img src="${p.gambar}" class="w-11 h-11 object-cover rounded-lg bg-gray-100 shadow-sm flex-shrink-0" onerror="this.src='https://placehold.co/40x40?text=📦'">
-                    <div class="overflow-hidden">
-                        <p class="font-bold text-gray-900 text-sm group-hover:text-teal-600 transition truncate">${escapeHtml(p.nama_produk)}</p>
-                        <p class="text-xs text-gray-400 mt-0.5 font-medium">Kode: <span class="font-mono text-gray-600 bg-gray-100 px-1 rounded font-semibold">${escapeHtml(p.kode)}</span> | Size: ${escapeHtml(p.size)}</p>
+    
+    try {
+        dataArray.forEach(p => {
+            // Escape kode untuk onclick
+            const kodeAman = p.kode.replace(/'/g, "\\'");
+            const itemBtn = `
+                <button type="button" onclick="pilihProduk('${kodeAman}')" class="w-full text-left p-3 bg-white hover:bg-teal-50/50 rounded-xl flex items-center justify-between border border-gray-200/70 hover:border-teal-200 transition group shadow-sm">
+                    <div class="flex items-center gap-3">
+                        <img src="${p.gambar || ''}" class="w-11 h-11 object-cover rounded-lg bg-gray-100 shadow-sm flex-shrink-0" onerror="this.src='https://placehold.co/40x40?text=📦'">
+                        <div class="overflow-hidden">
+                            <p class="font-bold text-gray-900 text-sm group-hover:text-teal-600 transition truncate">${escapeHtml(p.nama_produk)}</p>
+                            <p class="text-xs text-gray-400 mt-0.5 font-medium">Kode: <span class="font-mono text-gray-600 bg-gray-100 px-1 rounded font-semibold">${escapeHtml(p.kode)}</span> | Size: ${escapeHtml(p.size)}</p>
+                        </div>
                     </div>
-                </div>
-                <div class="text-right flex-shrink-0 pl-2">
-                    <span class="text-[11px] font-bold ${p.stok <= 5 ? 'text-red-700 bg-red-50 border-red-100' : 'text-slate-600 bg-slate-100 border-slate-200'} px-2 py-0.5 rounded-full border">Stok: ${p.stok}</span>
-                    <p class="text-xs font-bold text-teal-600 mt-1.5">Rp ${Number(p.harga_jual).toLocaleString('id-ID')}</p>
-                </div>
-            </button>
-        `;
-        container.insertAdjacentHTML('beforeend', itemBtn);
-    });
+                    <div class="text-right flex-shrink-0 pl-2">
+                        <span class="text-[11px] font-bold ${p.stok <= 5 ? 'text-red-700 bg-red-50 border-red-100' : 'text-slate-600 bg-slate-100 border-slate-200'} px-2 py-0.5 rounded-full border">Stok: ${p.stok}</span>
+                        <p class="text-xs font-bold text-teal-600 mt-1.5">Rp ${Number(p.harga_jual).toLocaleString('id-ID')}</p>
+                    </div>
+                </button>
+            `;
+            container.insertAdjacentHTML('beforeend', itemBtn);
+        });
+    } catch (err) {
+        console.error("Error rendering list produk:", err);
+        container.innerHTML = '<div class="text-center text-red-500 p-4">Gagal menampilkan produk</div>';
+    }
 }
 
 function filterSelectProduk() {
