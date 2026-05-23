@@ -63,112 +63,34 @@ async function muatSemuaData() {
     }
 }
 
-// ========== MODIFIKASI UTAMA: TAMPILAN PRODUK MODERN ==========
 function renderTabelProduk(arrayData) {
     const tbody = document.getElementById('tabel-produk-body');
     tbody.innerHTML = '';
-    if (!arrayData || arrayData.length === 0) {
+    if(arrayData.length === 0) {
         tbody.innerHTML = `<tr><td colspan="9" class="p-8 text-center text-gray-400 italic">Belum ada data barang.</td></tr>`;
         return;
     }
-
     arrayData.forEach((item, index) => {
-        // Badge stok
-        let stokBadge = '';
-        if (item.stok <= 5) {
-            stokBadge = `<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 border border-red-200">Sisa ${item.stok}</span>`;
-        } else {
-            stokBadge = `<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700 border border-gray-200">${item.stok}</span>`;
-        }
-
-        // Badge kode
-        const kodeBadge = `<span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-mono font-medium bg-gray-100 text-gray-700 border border-gray-200">${escapeHtml(item.kode)}</span>`;
-
-        // Format harga
-        const hargaJualFormatted = `Rp ${Number(item.harga_jual).toLocaleString('id-ID')}`;
-        const modalFormatted = `Rp ${Number(item.modal).toLocaleString('id-ID')}`;
-
-        // Nama dan warna
-        const namaProduk = escapeHtml(item.nama_produk || '-');
-        const warnaProduk = escapeHtml(item.warna || '-');
-
-        const row = document.createElement('tr');
-        row.className = "border-b border-gray-100 hover:bg-gray-50 transition duration-150";
-
-        // Kolom No
-        const tdNo = document.createElement('td');
-        tdNo.className = "p-2 md:p-4 text-sm text-gray-500 text-center";
-        tdNo.textContent = index + 1;
-        row.appendChild(tdNo);
-
-        // Kolom Nama Produk (dengan foto + nama + warna)
-        const tdNama = document.createElement('td');
-        tdNama.className = "p-2 md:p-4";
-        tdNama.innerHTML = `
-            <div class="flex items-center gap-3">
-                <img src="${item.gambar || ''}" class="w-10 h-10 md:w-12 md:h-12 object-cover rounded-lg bg-gray-100 shadow-sm flex-shrink-0" onerror="this.src='https://placehold.co/48x48?text=📦'">
-                <div>
-                    <p class="font-bold text-gray-800 text-sm md:text-base">${namaProduk}</p>
-                    <p class="text-xs text-gray-500 mt-0.5">Warna: ${warnaProduk}</p>
-                </div>
-            </div>
+        const row = `
+            <tr class="border-b hover:bg-slate-50/80 transition duration-150">
+                <td class="p-2 md:p-4 font-medium text-gray-500">${index + 1}</td>
+                <td class="p-2 md:p-4 font-bold text-gray-900">${item.nama_produk}</td>
+                <td class="p-2 md:p-4 hidden sm:table-cell">
+                    <img src="${item.gambar}" alt="Foto" class="w-10 h-10 object-cover rounded shadow-sm bg-gray-100" onerror="this.src='https://placehold.co/40x40?text=No+Img'">
+                </td>
+                <td class="p-2 md:p-4"><span class="bg-slate-100 text-slate-700 text-xs px-2 py-1 rounded font-mono border font-semibold">${item.kode}</span></td>
+                <td class="p-2 md:p-4 font-medium">${item.size}</td>
+                <td class="p-2 md:p-4 text-gray-600 hidden md:table-cell">${item.warna}</td>
+                <td class="p-2 md:p-4 text-gray-500 hidden md:table-cell">Rp ${Number(item.modal).toLocaleString('id-ID')}</td>
+                <td class="p-2 md:p-4 text-teal-600 font-bold">Rp ${Number(item.harga_jual).toLocaleString('id-ID')}</td>
+                <td class="p-2 md:p-4">
+                    <span class="px-2.5 py-1 rounded-full text-xs font-bold ${item.stok <= 5 ? 'bg-red-50 text-red-700 border border-red-200' : 'bg-green-50 text-green-700 border border-green-200'}">
+                        ${item.stok} pcs
+                    </span>
+                </td>
+            </tr>
         `;
-        row.appendChild(tdNama);
-
-        // Kolom Gambar (biarkan kosong atau ikon kecil, karena foto sudah di kolom nama)
-        const tdGambar = document.createElement('td');
-        tdGambar.className = "p-2 md:p-4 hidden sm:table-cell text-center text-gray-400";
-        tdGambar.innerHTML = '<i class="fa-regular fa-image text-lg"></i>';
-        row.appendChild(tdGambar);
-
-        // Kolom Kode (badge)
-        const tdKode = document.createElement('td');
-        tdKode.className = "p-2 md:p-4";
-        tdKode.innerHTML = kodeBadge;
-        row.appendChild(tdKode);
-
-        // Kolom Size
-        const tdSize = document.createElement('td');
-        tdSize.className = "p-2 md:p-4 text-sm text-gray-700";
-        tdSize.textContent = item.size || '-';
-        row.appendChild(tdSize);
-
-        // Kolom Warna (bisa diisi ulang agar konsisten, meskipun sudah ada di kolom nama)
-        const tdWarna = document.createElement('td');
-        tdWarna.className = "p-2 md:p-4 text-sm text-gray-600 hidden md:table-cell";
-        tdWarna.textContent = warnaProduk;
-        row.appendChild(tdWarna);
-
-        // Kolom Modal (abu-abu kecil)
-        const tdModal = document.createElement('td');
-        tdModal.className = "p-2 md:p-4 text-xs text-gray-500 hidden md:table-cell";
-        tdModal.textContent = modalFormatted;
-        row.appendChild(tdModal);
-
-        // Kolom Harga Jual (teal tebal)
-        const tdHargaJual = document.createElement('td');
-        tdHargaJual.className = "p-2 md:p-4 text-sm font-bold text-teal-600";
-        tdHargaJual.textContent = hargaJualFormatted;
-        row.appendChild(tdHargaJual);
-
-        // Kolom Stok (badge)
-        const tdStok = document.createElement('td');
-        tdStok.className = "p-2 md:p-4";
-        tdStok.innerHTML = stokBadge;
-        row.appendChild(tdStok);
-
-        tbody.appendChild(row);
-    });
-}
-// ========== AKHIR MODIFIKASI ==========
-
-function escapeHtml(str) {
-    if (!str) return '';
-    return str.replace(/[&<>]/g, function(m) {
-        if (m === '&') return '&amp;';
-        if (m === '<') return '&lt;';
-        if (m === '>') return '&gt;';
-        return m;
+        tbody.insertAdjacentHTML('beforeend', row);
     });
 }
 
@@ -192,7 +114,7 @@ function renderDashboard(ringkasan, terlaris, produk, riwayatHarian) {
                 <div class="flex items-center justify-between p-2 hover:bg-gray-50 rounded-lg">
                     <div class="flex items-center gap-2 md:gap-3">
                         <div class="w-7 h-7 bg-teal-50 text-teal-600 rounded flex items-center justify-center font-bold text-xs"><i class="fa-solid fa-star"></i></div>
-                        <div><p class="font-semibold text-gray-800 text-sm">${escapeHtml(item.nama)}</p><p class="text-xs text-gray-400">Kode: ${escapeHtml(item.kode)}</p></div>
+                        <div><p class="font-semibold text-gray-800 text-sm">${item.nama}</p><p class="text-xs text-gray-400">Kode: ${item.kode}</p></div>
                     </div>
                     <span class="bg-orange-50 text-orange-700 text-xs font-bold px-2 py-1 rounded-full">${item.total_jual} Terjual</span>
                 </div>
@@ -209,7 +131,7 @@ function renderDashboard(ringkasan, terlaris, produk, riwayatHarian) {
                 <div class="flex items-center justify-between p-2 hover:bg-gray-50 rounded-lg">
                     <div class="flex items-center gap-2 md:gap-3">
                         <img src="${item.gambar}" class="w-7 h-7 object-cover rounded" onerror="this.src='https://placehold.co/40x40?text=📦'">
-                        <div><p class="font-semibold text-gray-800 text-sm">${escapeHtml(item.nama_produk)}</p><p class="text-xs text-gray-400">Size: ${escapeHtml(item.size)} | Warna: ${escapeHtml(item.warna)}</p></div>
+                        <div><p class="font-semibold text-gray-800 text-sm">${item.nama_produk}</p><p class="text-xs text-gray-400">Size: ${item.size} | Warna: ${item.warna}</p></div>
                     </div>
                     <span class="bg-red-50 text-red-700 text-xs font-bold px-2 py-1 rounded-full border border-red-200">Sisa ${item.stok}</span>
                 </div>
@@ -341,8 +263,8 @@ function renderListSelectProduk(dataArray) {
                 <div class="flex items-center gap-3">
                     <img src="${p.gambar}" class="w-11 h-11 object-cover rounded-lg bg-gray-100 shadow-sm flex-shrink-0" onerror="this.src='https://placehold.co/40x40?text=📦'">
                     <div class="overflow-hidden">
-                        <p class="font-bold text-gray-900 text-sm group-hover:text-teal-600 transition truncate">${escapeHtml(p.nama_produk)}</p>
-                        <p class="text-xs text-gray-400 mt-0.5 font-medium">Kode: <span class="font-mono text-gray-600 bg-gray-100 px-1 rounded font-semibold">${escapeHtml(p.kode)}</span> | Size: ${escapeHtml(p.size)}</p>
+                        <p class="font-bold text-gray-900 text-sm group-hover:text-teal-600 transition truncate">${p.nama_produk}</p>
+                        <p class="text-xs text-gray-400 mt-0.5 font-medium">Kode: <span class="font-mono text-gray-600 bg-gray-100 px-1 rounded font-semibold">${p.kode}</span> | Size: ${p.size}</p>
                     </div>
                 </div>
                 <div class="text-right flex-shrink-0 pl-2">
@@ -424,10 +346,10 @@ function ubahFormTransaksi() {
         jumlahInput.className = "w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-teal-500 focus:outline-none bg-gray-100 font-medium";
         spanHarga.classList.add('hidden');
         inputHarga.classList.remove('hidden');
-        boxHargaJual.classList.remove('hidden');
+        boxHargaJual.classList.remove('hidden'); // ⭐ Tampilkan input harga jual baru
         if (selectedProductData) {
             inputHarga.value = Number(selectedProductData.modal);
-            document.getElementById('trx-harga-jual-baru').value = Number(selectedProductData.harga_jual);
+            document.getElementById('trx-harga-jual-baru').value = Number(selectedProductData.harga_jual); // isi default harga jual saat ini
         } else {
             inputHarga.value = '';
             document.getElementById('trx-harga-jual-baru').value = '';
@@ -510,7 +432,7 @@ async function simpanTransaksi(event) {
         jumlah: jumlah,
         keterangan: keterangan,
         harga_satuan: hargaSatuan,
-        harga_jual_baru: hargaJualBaru
+        harga_jual_baru: hargaJualBaru   // ⭐ Kirim harga jual baru jika diisi
     };
 
     try {
@@ -577,6 +499,7 @@ document.addEventListener('DOMContentLoaded', () => {
     muatSemuaData();
     switchTab('dashboard');
 });
+// Registrasi Service Worker
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('./sw.js')
     .then(reg => console.log('✅ Service Worker terdaftar', reg))
