@@ -5,3 +5,13 @@
 .smooth-scroll {
     scroll-behavior: smooth;
 }
+
+/* Efek hover pada baris tabel */
+tbody tr:hover {
+    background-color: #f9fafb;
+}
+
+/* Badge stok transisi */
+tbody tr span {
+    transition: all 0.2s ease;
+}
