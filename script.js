@@ -24,7 +24,7 @@ function updateSapaan() {
     else if (jam >= 12 && jam < 15) sapaan = "Selamat Siang";
     else if (jam >= 15 && jam < 18) sapaan = "Selamat Sore";
     const el = document.getElementById('sapaan-text');
-    if (el) el.innerText = `${sapaan}, Faza 👋🏻`;
+    if (el) el.innerText = `${sapaan}, Seller 👋🏻`;
 }
 
 // ==================== NAVIGASI ====================
